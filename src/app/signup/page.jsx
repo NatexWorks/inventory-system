@@ -1,7 +1,10 @@
-import { redirect } from "next/navigation";
+import AuthForm from "@/app/components/AuthForm";
 
-// Signup route reuses the same auth form but switches it into signup mode.
+// Keep signup visually consistent with login by using the shared reference form.
 export default async function SignupPage({ searchParams }) {
-  await searchParams;
-  redirect("/");
+  const params = await searchParams;
+  const candidate = typeof params?.next === "string" ? params.next : "/";
+  const redirectPath = candidate.startsWith("/") && !candidate.startsWith("//") ? candidate : "/";
+
+  return <AuthForm mode="signup" redirectPath={redirectPath} />;
 }
