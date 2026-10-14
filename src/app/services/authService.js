@@ -152,11 +152,18 @@ export async function loginUser(input) {
 }
 
 export async function requestPasswordReset(input) {
+  await dbConnect();
   const payload = forgotPasswordSchema.parse(input);
   const email = payload.email.toLowerCase();
+  const account = await User.findOne({ email, isActive: true }).select("_id").lean();
 
-  // sendEmailOtp intentionally returns the same public result for unknown accounts.
-  return sendEmailOtp({ email, purpose: "password-reset" });
+  // Unknown addresses are routed to signup by the recovery UI; never issue an OTP for them.
+  if (!account) {
+    return { ok: true, accountExists: false };
+  }
+
+  const result = await sendEmailOtp({ email, purpose: "password-reset" });
+  return { ...result, accountExists: true };
 }
 
 export async function resetPassword(input) {
