@@ -59,8 +59,8 @@ test.describe('Authentication', () => {
     await auth.goto('/forgot-password');
     await page.getByLabel('Email').fill('missing-user@example.com');
     await page.getByRole('button', { name: /send reset code/i }).click();
-    await expect(page).toHaveURL(/reset-password[?]email=/);
-    await expect(page.getByLabel('Email verification code')).toBeVisible();
-    await expect(page.getByRole('button', { name: /reset password/i })).toBeDisabled();
+    await expect(page).toHaveURL(/\/signup\?email=.*notice=account-not-found/);
+    await expect(page.getByLabel('Email')).toHaveValue('missing-user@example.com');
+    await expect(page.getByText(/No account was found for this email/i)).toBeVisible();
   });
 });

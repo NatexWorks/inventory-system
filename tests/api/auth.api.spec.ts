@@ -40,6 +40,7 @@ test.describe('Auth API', () => {
       });
       const forgotPayload = await expectSuccess(forgot, 200);
       expect(forgotPayload.data.accepted).toBe(true);
+      expect(forgotPayload.data.accountExists).toBe(true);
       const resetOtp = String(forgotPayload.data.developmentOtp || '');
       expect(resetOtp).toMatch(/^[0-9]{6}$/);
 
@@ -57,6 +58,26 @@ test.describe('Auth API', () => {
         data: { email, password: 'Password456!' },
       });
       await expectSuccess(relogin, 200);
+    });
+  });
+
+  test('identifies unknown recovery emails and limits requests to five per window', async () => {
+    const email = `unknown-recovery-${Date.now()}@example.com`;
+
+    await withApiContext(undefined, async (request) => {
+      for (let attempt = 0; attempt < 5; attempt += 1) {
+        const response = await request.post('/api/auth/forgot-password', {
+          data: { email },
+        });
+        const payload = await expectSuccess(response, 200);
+        expect(payload.data.accountExists).toBe(false);
+        expect(payload.data.developmentOtp).toBeUndefined();
+      }
+
+      const sixthAttempt = await request.post('/api/auth/forgot-password', {
+        data: { email },
+      });
+      await expectFailure(sixthAttempt, 429);
     });
   });
 

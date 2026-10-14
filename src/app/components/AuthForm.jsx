@@ -9,7 +9,7 @@ import { MdArrowForward, MdLockOutline, MdPersonOutline } from "react-icons/md";
 const baseField =
   "w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-indigo-300 focus:bg-white";
 
-export default function AuthForm({ mode = "login", redirectPath = "/" }) {
+export default function AuthForm({ mode = "login", redirectPath = "/", initialEmail = "", initialMessage = "" }) {
   // `mode` decides whether this form behaves like login or signup.
   const isSignup = mode === "signup";
   const authSwitchHref = `${isSignup ? "/login" : "/signup"}?next=${encodeURIComponent(redirectPath)}`;
@@ -18,14 +18,14 @@ export default function AuthForm({ mode = "login", redirectPath = "/" }) {
   // `useState` stores form values and request status inside the component.
   const [form, setForm] = useState({
     name: "",
-    email: "",
+    email: initialEmail,
     password: "",
   });
   const [loading, setLoading] = useState(false);
   const [otp, setOtp] = useState("");
   const [otpSent, setOtpSent] = useState(false);
   const [otpLoading, setOtpLoading] = useState(false);
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState(initialMessage);
   const [error, setError] = useState("");
 
   // Updates only the field that changed while keeping the rest of the form intact.
@@ -167,7 +167,7 @@ export default function AuthForm({ mode = "login", redirectPath = "/" }) {
               {isSignup ? "Start your inventory workspace" : "Login to continue"}
             </h2>
             <p className="mt-2 text-sm text-slate-500">
-              {isSignup ? "Create your workspace profile in a few seconds." : "Enter your details to open the dashboard."}
+              {isSignup ? "New user? Enter your name, email, and password. We will verify your email with a one-time code before creating the account." : "Already have an account? Enter the email and password you registered with. Use “Forgot password?” if you need to reset it."}
             </p>
           </div>
 
@@ -273,7 +273,7 @@ export default function AuthForm({ mode = "login", redirectPath = "/" }) {
 
           <div className="mt-6 flex items-center justify-between gap-4 text-sm text-slate-500">
             <div className="flex flex-col gap-1">
-              <span>{isSignup ? "Already have an account?" : "Need an account?"}</span>
+              <span>{isSignup ? "Already registered?" : "New to Inventory System?"}</span>
               {!isSignup ? (
                 <Link href="/forgot-password" className="text-xs font-semibold text-slate-500 transition hover:text-indigo-600">
                   Forgot password?
@@ -281,7 +281,7 @@ export default function AuthForm({ mode = "login", redirectPath = "/" }) {
               ) : null}
             </div>
             <Link href={authSwitchHref} className="font-semibold text-indigo-600 transition hover:text-indigo-500">
-              {isSignup ? "Login here" : "Create one"}
+              {isSignup ? "Sign in" : "Create account"}
             </Link>
           </div>
         </section>
