@@ -29,12 +29,14 @@ test.describe('Auth API', () => {
         data: { email: users.owner.email },
       });
       const forgotPayload = await expectSuccess(forgot, 200);
-      expect(forgotPayload.data.resetLink).toContain('/reset-password?token=');
+      expect(forgotPayload.data.accepted).toBe(true);
+      const otp = String(forgotPayload.data.developmentOtp || '');
+      expect(otp).toMatch(/^[0-9]{6}$/);
 
-      const token = new URL(forgotPayload.data.resetLink as string).searchParams.get('token') || '';
       const reset = await request.post('/api/auth/reset-password', {
         data: {
-          token,
+          email: users.owner.email,
+          otp,
           password: 'Password456!',
           confirmPassword: 'Password456!',
         },
@@ -67,11 +69,20 @@ test.describe('Auth API', () => {
     const runId = loadSeedData().runId;
 
     await withApiContext(undefined, async (request) => {
+      const email = `role-boundary-${runId}-${Date.now()}@example.com`;
+      const otpResponse = await request.post('/api/auth/send-otp', {
+        data: { email, purpose: 'signup' },
+      });
+      const otpPayload = await expectSuccess(otpResponse, 200);
+      const otp = String(otpPayload.data.developmentOtp || '');
+      expect(otp).toMatch(/^[0-9]{6}$/);
+
       const response = await request.post('/api/auth/signup', {
         data: {
           name: 'Role Boundary Test',
-          email: `role-boundary-${runId}-${Date.now()}@example.com`,
+          email,
           password: 'Password123!',
+          otp,
           role: 'staff',
         },
       });
@@ -85,16 +96,14 @@ test.describe('Auth API', () => {
     const seed = loadSeedData();
 
     await withApiContext(undefined, async (request) => {
-      const response = await request.post('/api/auth/signup', {
+      const response = await request.post('/api/auth/send-otp', {
         data: {
-          name: seed.users.owner.name,
           email: seed.users.owner.email,
-          password: seed.users.owner.password,
-          role: 'owner',
+          purpose: 'signup',
         },
       });
 
-      const payload = await expectFailure(response, 500);
+      const payload = await expectFailure(response, 409);
       expect(String(payload.message)).toMatch(/already registered/i);
     });
   });
