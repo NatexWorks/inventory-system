@@ -59,7 +59,7 @@ test.describe('Authentication', () => {
     await auth.goto('/forgot-password');
     await page.getByLabel('Email').fill('missing-user@example.com');
     await page.getByRole('button', { name: /send reset code/i }).click();
-    await expect(page).toHaveURL(/\\/reset-password\\?email=/);
+    await expect(page).toHaveURL(/reset-password[?]email=/);
     await expect(page.getByLabel('Email verification code')).toBeVisible();
     await expect(page.getByRole('button', { name: /reset password/i })).toBeDisabled();
   });
