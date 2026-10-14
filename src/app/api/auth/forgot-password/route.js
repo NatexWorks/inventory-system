@@ -6,11 +6,17 @@ import { requestPasswordReset } from "@/app/services/authService";
 export async function POST(request) {
   try {
     const body = await parseJsonBody(request);
-    const limit = rateLimit(`forgot:${String(body?.email || request.headers.get("x-forwarded-for") || "anon").toLowerCase()}`, {
+    const email = String(body?.email || "unknown").toLowerCase();
+    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+    const limit = rateLimit(`forgot-email:${email}`, {
       limit: 5,
       windowMs: 10 * 60 * 1000,
     });
-    if (!limit.allowed) {
+    const ipLimit = rateLimit(`forgot-ip:${ip}`, {
+      limit: 15,
+      windowMs: 10 * 60 * 1000,
+    });
+    if (!limit.allowed || !ipLimit.allowed) {
       return jsonError("Too many requests. Please try again later.", 429);
     }
 
