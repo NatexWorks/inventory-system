@@ -11,6 +11,16 @@ export const authSignupSchema = z.object({
   password: z.string().min(8).max(128),
 });
 
+// Public signup and password recovery require a six-digit emailed OTP.
+export const signupWithOtpSchema = authSignupSchema.extend({
+  otp: z.string().trim().regex(/^\\d{6}$/, "Enter the six-digit email code"),
+});
+
+export const sendOtpSchema = z.object({
+  email: z.string().trim().email(),
+  purpose: z.enum(["signup", "password-reset"]),
+});
+
 // Magic-link sign-up metadata is stored before the email link is sent.
 export const magicLinkRequestSchema = z.object({
   name: z.string().trim().min(2).max(120).optional().default(""),
@@ -29,6 +39,16 @@ export const forgotPasswordSchema = z.object({
 
 export const resetPasswordSchema = z.object({
   token: z.string().trim().min(10),
+  password: z.string().min(8).max(128),
+  confirmPassword: z.string().min(8).max(128),
+}).refine((value) => value.password === value.confirmPassword, {
+  message: "Passwords do not match",
+  path: ["confirmPassword"],
+});
+
+export const otpResetPasswordSchema = z.object({
+  email: z.string().trim().email(),
+  otp: z.string().trim().regex(/^\\d{6}$/, "Enter the six-digit email code"),
   password: z.string().min(8).max(128),
   confirmPassword: z.string().min(8).max(128),
 }).refine((value) => value.password === value.confirmPassword, {
