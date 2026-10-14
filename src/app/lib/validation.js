@@ -9,7 +9,6 @@ export const authSignupSchema = z.object({
   name: z.string().trim().min(2).max(120),
   email: z.string().trim().email(),
   password: z.string().min(8).max(128),
-  role: z.enum(["owner", "staff"]).default("owner"),
 });
 
 // Magic-link sign-up metadata is stored before the email link is sent.
