@@ -179,9 +179,9 @@ export async function createProduct(userId, input) {
     throw new Error("A barcode is required while strict barcode mode is enabled");
   }
 
-  // A product-level barcode identifies the product, not each physical unit.
-  // Generate an internal identifier when one wasn't supplied and stock exists.
-  if (barcodes.length === 0 && payload.stock > 0) {
+  // Respect the workspace setting: when automatic generation is enabled, a
+  // product-level barcode is generated if the operator didn't scan one.
+  if (barcodes.length === 0 && payload.stock > 0 && policy.autoGenerate) {
     barcodes = await generateUniqueBarcodes(userId, 1);
   }
 
