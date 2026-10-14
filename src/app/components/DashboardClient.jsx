@@ -352,12 +352,20 @@ export default function DashboardClient() {
         accent: "from-emerald-500/15 to-emerald-500/5 text-emerald-600",
       },
       {
-        title: "Inventory Value",
-        value: money(summary?.inventoryValue || 0),
-        change: Number(summary?.inventoryValue || 0) ? "+ live" : "0",
-        trend: "stock at cost price",
+        title: "Total Inventory Value",
+        value: money(summary?.retailInventoryValue || 0),
+        change: Number(summary?.retailInventoryValue || 0) ? "+ live" : "0",
+        trend: "stock at selling price",
         icon: FaLayerGroup,
         accent: "from-violet-500/15 to-violet-500/5 text-violet-600",
+      },
+      {
+        title: "Inventory Cost Value",
+        value: money(summary?.inventoryValue || 0),
+        change: Number(summary?.inventoryValue || 0) ? "+ live" : "0",
+        trend: "stock at purchase cost",
+        icon: FaWarehouse,
+        accent: "from-cyan-500/15 to-cyan-500/5 text-cyan-700",
       },
     ];
   }, [summary]);
@@ -427,7 +435,7 @@ export default function DashboardClient() {
         </div>
       </section>
 
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
         {metricCards.map((metric) => (
           <MetricCard key={metric.title} {...metric} />
         ))}
@@ -508,7 +516,7 @@ export default function DashboardClient() {
                       <p className="wrap-safe font-medium leading-tight text-slate-900">{item.name}</p>
                       <p className="wrap-safe mt-1 text-sm leading-tight text-slate-500">SKU {item.sku || "N/A"}</p>
                     </div>
-                    <StatusPill status={item.stock <= 3 ? "Out of Stock" : "Low Stock"} />
+                    <StatusPill status={item.stock <= 0 ? "Out of Stock" : "Low Stock"} />
                   </div>
                   <div className="mt-3 flex items-center justify-between text-sm">
                     <span className="text-slate-500">Remaining stock</span>
@@ -585,14 +593,65 @@ export default function DashboardClient() {
             ))}
           </div>
 
-          <div className="mt-5 rounded-2xl bg-slate-50 p-4">
-            <div className="flex items-center gap-2 text-sm font-semibold text-slate-900">
-              <FaUserClock className="text-indigo-600" />
-              Team activity
-            </div>
-            <p className="mt-2 text-sm text-slate-500">
-              {summary?.lowStockProducts || 0} items are below threshold and {summary?.totalSales || 0} orders are completed.
-            </p>
+          <div className="mt-5 grid gap-4">
+            <section className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+                  <FaUserClock className="text-indigo-600" />
+                  Order Updates
+                </div>
+                <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${summary?.orderUpdatesEnabled === false ? "bg-slate-200 text-slate-600" : "bg-emerald-100 text-emerald-700"}`}>
+                  {summary?.orderUpdatesEnabled === false ? "Off" : "On"}
+                </span>
+              </div>
+              {summary?.orderUpdatesEnabled === false ? (
+                <p className="mt-3 text-sm text-slate-500">Order activity is hidden here. Turn on Order Updates in Settings to see recent order status changes.</p>
+              ) : orderRows.length === 0 ? (
+                <p className="mt-3 text-sm text-slate-500">No order activity yet.</p>
+              ) : (
+                <div className="mt-3 space-y-2">
+                  {orderRows.slice(0, 3).map((order) => (
+                    <div key={`update-${order._id}`} className="flex items-center justify-between gap-3 rounded-xl bg-white px-3 py-2">
+                      <div className="min-w-0">
+                        <p className="wrap-safe text-sm font-semibold text-slate-900">{order.orderNumber}</p>
+                        <p className="wrap-safe text-xs text-slate-500">{order.customerName || "Customer"}</p>
+                      </div>
+                      <div className="shrink-0 text-right">
+                        <StatusPill status={order.status} />
+                        <p className="mt-1 text-xs font-medium text-slate-600">{money(order.totalAmount)}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+
+            <section className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <div className="flex items-center justify-between gap-3">
+                <h4 className="text-sm font-semibold text-slate-900">Weekly Summary</h4>
+                <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${summary?.weeklySummaryEnabled === false ? "bg-slate-200 text-slate-600" : "bg-emerald-100 text-emerald-700"}`}>
+                  {summary?.weeklySummaryEnabled === false ? "Off" : "Last 7 days"}
+                </span>
+              </div>
+              {summary?.weeklySummaryEnabled === false ? (
+                <p className="mt-3 text-sm text-slate-500">The weekly summary is hidden. Turn it on in Settings to show recent sales performance here.</p>
+              ) : (
+                <div className="mt-3 grid grid-cols-2 gap-3">
+                  <div className="rounded-xl bg-white p-3">
+                    <p className="text-xs text-slate-500">Sales</p>
+                    <p className="mt-1 text-lg font-semibold text-slate-900">{money(summary?.weeklySummary?.totalRevenue || 0)}</p>
+                  </div>
+                  <div className="rounded-xl bg-white p-3">
+                    <p className="text-xs text-slate-500">Completed Orders</p>
+                    <p className="mt-1 text-lg font-semibold text-slate-900">{summary?.weeklySummary?.totalOrders || 0}</p>
+                  </div>
+                  <div className="col-span-2 rounded-xl bg-white p-3">
+                    <p className="text-xs text-slate-500">Average Order Value</p>
+                    <p className="mt-1 text-lg font-semibold text-slate-900">{money(summary?.weeklySummary?.averageOrderValue || 0)}</p>
+                  </div>
+                </div>
+              )}
+            </section>
           </div>
         </div>
       </section>

@@ -492,6 +492,7 @@ export default function OrdersPage() {
       "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
     }[character]));
     const format = settings?.billing?.invoiceFormat || "simple";
+    const simple = format === "simple";
     const storeName = settings?.store?.storeName || "Store";
     const storeEmail = settings?.store?.storeEmail || "";
     const storeAddress = settings?.store?.storeAddress || "";
@@ -521,11 +522,11 @@ export default function OrdersPage() {
         th,td{padding:10px 8px;border-bottom:1px solid #e5e7eb;text-align:left;vertical-align:top}th{background:#f3f4f6;font-size:11px;text-transform:uppercase}
         .num{text-align:right;white-space:nowrap}.totals{width:280px;margin:18px 0 0 auto}.totals div{display:flex;justify-content:space-between;padding:5px 0}.grand{border-top:2px solid #111827;margin-top:6px;padding-top:10px!important;font-size:17px;font-weight:700}
         .footer{margin-top:28px;border-top:1px solid #e5e7eb;padding-top:14px;text-align:center;color:#6b7280}
-        ${thermal ? "@page{size:80mm auto;margin:4mm}body{padding:0;font-size:11px}.invoice{width:72mm;max-width:72mm}.top{display:block;text-align:center;border-bottom:1px dashed #111827}.right{text-align:center}.top h1{font-size:18px}.customer{margin:12px 0}table{font-size:10px}th,td{padding:6px 2px}.totals{width:100%}.grand{font-size:14px}" : ""}
+        ${thermal ? "@page{size:80mm auto;margin:4mm}body{padding:0;font-size:11px}.invoice{width:72mm;max-width:72mm}.top{display:block;text-align:center;border-bottom:1px dashed #111827}.right{text-align:center}.top h1{font-size:18px}.customer{margin:12px 0}table{font-size:10px}th,td{padding:6px 2px}.totals{width:100%}.grand{font-size:14px}" : simple ? "@page{size:A5 portrait;margin:10mm}body{padding:10px;font-size:12px}.invoice{max-width:148mm}.top{gap:14px;border-bottom:1px solid #374151;padding-bottom:10px;margin-bottom:12px}.top h1{font-size:18px}.customer{margin:12px 0}table{margin-top:12px}th,td{padding:7px 5px}.totals{width:220px}.grand{font-size:15px}" : ""}
         @media print{body{padding:${thermal ? "0" : "12px"}}.no-print{display:none}}
       </style></head><body><main class="invoice">
       <header class="top"><div><h1>${escapeHtml(storeName)}</h1><div class="muted">${escapeHtml(storeAddress).replace(/\n/g, "<br>")}</div>${storeEmail ? `<div class="muted">${escapeHtml(storeEmail)}</div>` : ""}</div>
-      <div class="right"><h1>${thermal ? "RECEIPT" : "INVOICE"}</h1><div><strong>${escapeHtml(order.orderNumber || "Order")}</strong></div><div class="muted">${escapeHtml(date)}</div><div class="muted">Status: ${escapeHtml(order.status || "COMPLETED")}</div></div></header>
+      <div class="right"><h1>${format === "detailed" ? "INVOICE" : "RECEIPT"}</h1><div><strong>${escapeHtml(order.orderNumber || "Order")}</strong></div><div class="muted">${escapeHtml(date)}</div><div class="muted">Status: ${escapeHtml(order.status || "COMPLETED")}</div></div></header>
       <section class="customer"><strong>Bill To</strong>${escapeHtml(order.customerName || "Walk-in Customer")}${order.customerPhone ? `<div class="muted">${escapeHtml(order.customerPhone)}</div>` : ""}</section>
       <table><thead><tr><th>Item</th><th class="num">Qty</th><th class="num">Price</th><th class="num">Amount</th></tr></thead><tbody>${itemRows}</tbody></table>
       <section class="totals"><div><span>Subtotal</span><strong>${formatCurrencyForInvoice(subtotal)}</strong></div>${discount ? `<div><span>Discount</span><strong>- ${formatCurrencyForInvoice(discount)}</strong></div>` : ""}${tax ? `<div><span>Tax</span><strong>${formatCurrencyForInvoice(tax)}</strong></div>` : ""}<div class="grand"><span>Total</span><span>${formatCurrencyForInvoice(total)}</span></div></section>

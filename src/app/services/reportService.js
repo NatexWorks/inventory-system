@@ -13,10 +13,13 @@ function toObjectId(value) {
 export async function buildDashboardSummary(userId) {
   await dbConnect();
   const userObjectId = toObjectId(userId);
-  const workspaceSettings = await Settings.findOne({ userId }).select("inventory.lowStockThreshold notifications.lowStockAlerts").lean();
+  const workspaceSettings = await Settings.findOne({ userId }).select("inventory.lowStockThreshold notifications.lowStockAlerts notifications.orderUpdates notifications.weeklySummary").lean();
   const lowStockThreshold = Math.max(0, Number(workspaceSettings?.inventory?.lowStockThreshold ?? 5));
+  const weekStart = new Date();
+  weekStart.setUTCDate(weekStart.getUTCDate() - 6);
+  weekStart.setUTCHours(0, 0, 0, 0);
 
-  const [totalProducts, lowStockProducts, recentOrders, lowStockItems, topProducts, revenueAgg, categoryAgg, inventoryValueAgg] = await Promise.all([
+  const [totalProducts, lowStockProducts, recentOrders, lowStockItems, topProducts, revenueAgg, categoryAgg, inventoryValueAgg, weeklySummaryAgg] = await Promise.all([
     Product.countDocuments({ userId }),
     Product.countDocuments({ userId, stock: { $lte: lowStockThreshold } }),
     Order.find({ userId }).sort({ createdAt: -1 }).limit(5).lean(),
@@ -43,6 +46,15 @@ export async function buildDashboardSummary(userId) {
         totalUnitsInStock: { $sum: { $ifNull: ["$stock", 0] } },
       } },
     ]),
+    Order.aggregate([
+      { $match: { userId: userObjectId, status: "COMPLETED", createdAt: { $gte: weekStart } } },
+      { $group: {
+        _id: null,
+        totalRevenue: { $sum: { $ifNull: ["$totalAmount", 0] } },
+        totalOrders: { $sum: 1 },
+        averageOrderValue: { $avg: { $ifNull: ["$totalAmount", 0] } },
+      } },
+    ]),
   ]);
 
   return {
@@ -50,6 +62,13 @@ export async function buildDashboardSummary(userId) {
     lowStockProducts,
     lowStockThreshold,
     lowStockAlertsEnabled: workspaceSettings?.notifications?.lowStockAlerts ?? true,
+    orderUpdatesEnabled: workspaceSettings?.notifications?.orderUpdates ?? true,
+    weeklySummaryEnabled: workspaceSettings?.notifications?.weeklySummary ?? true,
+    weeklySummary: {
+      totalRevenue: weeklySummaryAgg[0]?.totalRevenue || 0,
+      totalOrders: weeklySummaryAgg[0]?.totalOrders || 0,
+      averageOrderValue: weeklySummaryAgg[0]?.averageOrderValue || 0,
+    },
     inventoryValue: inventoryValueAgg[0]?.inventoryValue || 0,
     retailInventoryValue: inventoryValueAgg[0]?.retailInventoryValue || 0,
     totalUnitsInStock: inventoryValueAgg[0]?.totalUnitsInStock || 0,

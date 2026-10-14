@@ -197,9 +197,9 @@ export default function SettingsPage() {
           </SectionCard>
 
           <SectionCard title="Notifications" helper="Choose which workspace alerts are enabled" icon={MdNotifications}>
-            <Toggle label="Low Stock Alerts" helper="Show alerts for items at or below your stock threshold." checked={form.lowStockAlerts} onChange={(value) => update("lowStockAlerts", value)} />
-            <Toggle label="Order Updates" helper="Enable order status update preferences." checked={form.orderUpdates} onChange={(value) => update("orderUpdates", value)} />
-            <Toggle label="Weekly Summary" helper="Enable the weekly summary preference." checked={form.weeklySummary} onChange={(value) => update("weeklySummary", value)} />
+            <Toggle label="Low Stock Alerts" helper="Show low-stock items on the dashboard using your threshold." checked={form.lowStockAlerts} onChange={(value) => update("lowStockAlerts", value)} />
+            <Toggle label="Order Updates" helper="Show recent order activity on the dashboard." checked={form.orderUpdates} onChange={(value) => update("orderUpdates", value)} />
+            <Toggle label="Weekly Summary" helper="Show completed sales and average order value for the last 7 days." checked={form.weeklySummary} onChange={(value) => update("weeklySummary", value)} />
           </SectionCard>
         </div>
 
@@ -208,7 +208,7 @@ export default function SettingsPage() {
           <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             <Field label="Low Stock Threshold"><input className={inputClass} type="number" min="0" max="100000" value={form.lowStockThreshold} onChange={(e) => update("lowStockThreshold", e.target.value)} /></Field>
             <Field label="Tax Percentage"><input className={inputClass} type="number" min="0" max="100" step="0.01" value={form.taxPercentage} onChange={(e) => update("taxPercentage", e.target.value)} /></Field>
-            <Field label="Invoice Format"><select className={inputClass} value={form.invoiceFormat} onChange={(e) => update("invoiceFormat", e.target.value)}><option value="simple">Simple receipt</option><option value="detailed">Detailed invoice</option><option value="thermal">Thermal receipt (80mm)</option></select></Field>
+            <Field label="Invoice Format"><select className={inputClass} value={form.invoiceFormat} onChange={(e) => update("invoiceFormat", e.target.value)}><option value="simple">Simple receipt (A5)</option><option value="detailed">Detailed invoice (A4)</option><option value="thermal">Thermal receipt (80mm)</option></select><span className="mt-2 block text-xs leading-relaxed text-slate-500">{form.invoiceFormat === "simple" ? "Compact receipt with the main item and payment totals." : form.invoiceFormat === "detailed" ? "Full-page invoice with barcode details and order notes when available." : "Narrow 80mm receipt layout for supported thermal printers."} Saved format is applied when you print a completed order from the Orders page.</span></Field>
             <Field label="Barcode Rules"><input className={inputClass} value={form.barcodeRules} onChange={(e) => update("barcodeRules", e.target.value)} /></Field>
             <Field label="Barcode Mode"><select className={inputClass} value={form.barcodeMode} onChange={(e) => update("barcodeMode", e.target.value)}><option value="optional">Optional</option><option value="strict">Strict</option></select><span className="mt-2 block text-xs text-slate-500">Strict mode requires a barcode unless auto-generation is enabled.</span></Field>
             <Field label="Auto Barcode Generation"><select className={inputClass} value={String(form.autoBarcodeGeneration)} onChange={(e) => update("autoBarcodeGeneration", e.target.value === "true")}><option value="false">Disabled</option><option value="true">Enabled</option></select></Field>
