@@ -30,7 +30,8 @@ export async function registerUser(input) {
     name: payload.name,
     email,
     passwordHash,
-    role: payload.role,
+    // Public self-signup always creates an owner; staff accounts need an authorized flow.
+    role: "owner",
   });
 
   await Settings.findOneAndUpdate(
