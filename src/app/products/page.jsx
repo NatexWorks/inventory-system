@@ -130,7 +130,8 @@ export default function ProductsPage() {
   const [barcodeEditorTarget, setBarcodeEditorTarget] = useState(null);
   const [barcodeDrafts, setBarcodeDrafts] = useState([]);
   const [barcodeEditorError, setBarcodeEditorError] = useState("");
-  const [barcodeEditorSaving, setBarcodeEditorSaving] = useState(false);\n  const [lowStockThreshold, setLowStockThreshold] = useState(5);
+  const [barcodeEditorSaving, setBarcodeEditorSaving] = useState(false);
+  const [lowStockThreshold, setLowStockThreshold] = useState(5);
 
   useEffect(() => {
     function handlePopState() {
