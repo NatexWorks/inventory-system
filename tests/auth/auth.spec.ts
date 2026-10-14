@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { getTestUsers, loadSeedData } from '../fixtures/testData';
 import { AuthPage } from '../page-objects/AuthPage';
 
-test.use({ storageState: undefined });
+test.use({ storageState: { cookies: [], origins: [] } });
 
 test.describe('Authentication', () => {
   test('logs in, reaches the dashboard, and logs out', async ({ page }) => {
