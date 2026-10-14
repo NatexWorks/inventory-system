@@ -255,17 +255,16 @@ async function seedWorkspaceData(baseUrl: string, ownerCookie: string, runId: st
   }
 
   const pendingOrder = completedOrderResponse.payload.data.order;
-  const completedResponse = await fetch(new URL(`/api/orders/${pendingOrder._id}`, baseUrl), {
-    method: 'PATCH',
+  const completedResponse = await fetch(new URL(`/api/orders/${pendingOrder._id}/approve`, baseUrl), {
+    method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Cookie: ownerCookie,
     },
-    body: JSON.stringify({ status: 'COMPLETED' }),
   });
   const completedPayload = await completedResponse.json().catch(() => null);
   if (!completedResponse.ok) {
-    throw new Error(`Failed to mark seeded order completed: ${JSON.stringify(completedPayload)}`);
+    throw new Error(`Failed to approve seeded order: ${JSON.stringify(completedPayload)}`);
   }
 
   const pendingOrderResponse = await postJson(
