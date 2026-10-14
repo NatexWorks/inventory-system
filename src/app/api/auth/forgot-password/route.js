@@ -21,7 +21,18 @@ export async function POST(request) {
     }
 
     const result = await requestPasswordReset(body);
-    return success("If an active account exists for this email, a password reset code has been sent.", { accepted: true, ...(result.developmentOtp ? { developmentOtp: result.developmentOtp } : {}) });
+    if (!result.accountExists) {
+      return success("No account was found for this email. Create an account to get started.", {
+        accepted: true,
+        accountExists: false,
+      });
+    }
+
+    return success("A password reset code has been sent to your email.", {
+      accepted: true,
+      accountExists: true,
+      ...(result.developmentOtp ? { developmentOtp: result.developmentOtp } : {}),
+    });
   } catch (error) {
     const normalized = normalizeError(error);
     return failure(normalized.message, normalized.errors, normalized.status);
