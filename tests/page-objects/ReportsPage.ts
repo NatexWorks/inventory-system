@@ -7,7 +7,8 @@ export class ReportsPage extends BasePage {
   }
 
   searchInput = this.page.getByPlaceholder('Search categories...');
-  exportButton = this.page.getByRole('button', { name: 'Export' });
+  exportCsvButton = this.page.getByRole('button', { name: 'Export CSV' });
+  exportPdfButton = this.page.getByRole('button', { name: 'Export PDF' });
 
   async search(term: string) {
     await this.searchInput.fill(term);
