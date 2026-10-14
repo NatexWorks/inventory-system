@@ -12,6 +12,7 @@ const baseField =
 export default function AuthForm({ mode = "login", redirectPath = "/" }) {
   // `mode` decides whether this form behaves like login or signup.
   const isSignup = mode === "signup";
+  const authSwitchHref = `${isSignup ? "/login" : "/signup"}?next=${encodeURIComponent(redirectPath)}`;
   const router = useRouter();
 
   // `useState` stores form values and request status inside the component.
@@ -202,7 +203,7 @@ export default function AuthForm({ mode = "login", redirectPath = "/" }) {
                 </Link>
               ) : null}
             </div>
-            <Link href={isSignup ? "/login" : "/signup"} className="font-semibold text-indigo-600 transition hover:text-indigo-500">
+            <Link href={authSwitchHref} className="font-semibold text-indigo-600 transition hover:text-indigo-500">
               {isSignup ? "Login here" : "Create one"}
             </Link>
           </div>
