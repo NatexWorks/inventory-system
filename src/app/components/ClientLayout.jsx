@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Sidebar from "./Sidebar";
 import Navbar from "./Navbar";
+import MaintenanceScreen from "./MaintenanceScreen";
 
 export default function ClientLayout({ children }) {
   const pathname = usePathname();
@@ -14,7 +15,52 @@ export default function ClientLayout({ children }) {
   const [user, setUser] = useState(null);
   const [authStatus, setAuthStatus] = useState("checking");
   const [authCheckError, setAuthCheckError] = useState("");
+  const [siteUnderMaintenance, setSiteUnderMaintenance] = useState(false);
   const router = useRouter();
+
+  // Catch unexpected browser errors and failing API requests globally. Never display
+  // raw stack traces, missing-secret messages, SMTP errors, or database details to users.
+  useEffect(() => {
+    const showMaintenance = () => setSiteUnderMaintenance(true);
+    const isApiRequest = (input) => {
+      try {
+        const rawUrl = typeof input === "string" || input instanceof URL ? input : input.url;
+        return new URL(rawUrl, window.location.origin).pathname.startsWith("/api/");
+      } catch {
+        return false;
+      }
+    };
+
+    const originalFetch = window.fetch;
+    const guardedFetch = async (...args) => {
+      const isApi = isApiRequest(args[0]);
+      try {
+        const response = await originalFetch.apply(window, args);
+        if (isApi && response.status >= 500) {
+          window.dispatchEvent(new Event("inventory:maintenance"));
+        }
+        return response;
+      } catch (error) {
+        if (isApi) {
+          window.dispatchEvent(new Event("inventory:maintenance"));
+        }
+        throw error;
+      }
+    };
+
+    const handleUnhandledError = () => showMaintenance();
+    window.fetch = guardedFetch;
+    window.addEventListener("inventory:maintenance", showMaintenance);
+    window.addEventListener("error", handleUnhandledError);
+    window.addEventListener("unhandledrejection", handleUnhandledError);
+
+    return () => {
+      if (window.fetch === guardedFetch) window.fetch = originalFetch;
+      window.removeEventListener("inventory:maintenance", showMaintenance);
+      window.removeEventListener("error", handleUnhandledError);
+      window.removeEventListener("unhandledrejection", handleUnhandledError);
+    };
+  }, []);
 
   // Auth routes render without the app shell so login pages stay clean.
   const isAuthRoute = ["/login", "/signup", "/forgot-password", "/reset-password"].includes(pathname)
@@ -93,6 +139,10 @@ export default function ClientLayout({ children }) {
       active = false;
     };
   }, [isAuthRoute, router]);
+
+  if (siteUnderMaintenance) {
+    return <MaintenanceScreen />;
+  }
 
   if (isAuthRoute) {
     return <>{children}</>;
