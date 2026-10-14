@@ -42,7 +42,7 @@ function formatCurrency(value) {
 }
 
 // Translates stock count into a human-readable availability label.
-function getStatus(stock) {
+function getStatus(stock, lowStockThreshold = 5) {
   if (stock <= 0) {
     return {
       label: "Out of Stock",
@@ -50,7 +50,7 @@ function getStatus(stock) {
     };
   }
 
-  if (stock <= 5) {
+  if (stock <= lowStockThreshold) {
     return {
       label: "Low Stock",
       className: "bg-amber-50 text-amber-700 ring-1 ring-amber-100",
@@ -130,7 +130,7 @@ export default function ProductsPage() {
   const [barcodeEditorTarget, setBarcodeEditorTarget] = useState(null);
   const [barcodeDrafts, setBarcodeDrafts] = useState([]);
   const [barcodeEditorError, setBarcodeEditorError] = useState("");
-  const [barcodeEditorSaving, setBarcodeEditorSaving] = useState(false);
+  const [barcodeEditorSaving, setBarcodeEditorSaving] = useState(false);\n  const [lowStockThreshold, setLowStockThreshold] = useState(5);
 
   useEffect(() => {
     function handlePopState() {
@@ -141,6 +141,18 @@ export default function ProductsPage() {
 
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
+  // Read the same low-stock threshold used by the dashboard.
+  useEffect(() => {
+    let active = true;
+    fetch("/api/settings", { credentials: "include", cache: "no-store" })
+      .then((response) => response.ok ? response.json() : null)
+      .then((payload) => {
+        if (active) setLowStockThreshold(Math.max(0, Number(payload?.data?.settings?.inventory?.lowStockThreshold ?? 5)));
+      })
+      .catch(() => {});
+    return () => { active = false; };
   }, []);
 
   // Refetch products whenever the page number or search query changes.
@@ -183,7 +195,7 @@ export default function ProductsPage() {
   const stats = useMemo(() => {
     // Derived metrics are computed from the current product list.
     const totalProducts = pagination.totalProducts ?? products.length;
-    const lowStock = products.filter((product) => product.stock > 0 && product.stock <= 5).length;
+    const lowStock = products.filter((product) => product.stock > 0 && product.stock <= lowStockThreshold).length;
     const outOfStock = products.filter((product) => product.stock <= 0).length;
     const inventoryValue = products.reduce(
       (sum, product) => sum + Number(product.price || 0) * Number(product.stock || 0),
@@ -220,7 +232,7 @@ export default function ProductsPage() {
         accent: "bg-emerald-50",
       },
     ];
-  }, [pagination.totalProducts, products]);
+  }, [pagination.totalProducts, products, lowStockThreshold]);
 
   const visibleStart = pagination.totalProducts === 0 ? 0 : (page - 1) * pagination.limit + 1;
   const visibleEnd = visibleStart + products.length - 1;
@@ -520,7 +532,7 @@ export default function ProductsPage() {
                   </thead>
                   <tbody>
                     {products.map((product) => {
-                      const status = getStatus(Number(product.stock || 0));
+                      const status = getStatus(Number(product.stock || 0), lowStockThreshold);
 
                       return (
                         <tr
