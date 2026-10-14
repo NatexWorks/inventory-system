@@ -34,6 +34,7 @@ const orderSchema = new Schema(
     cancelledBy: { type: Schema.Types.ObjectId, ref: "User", default: null },
     cancelledAt: { type: Date, default: null },
     isReturn: { type: Boolean, default: false },
+    returnRevision: { type: Number, default: 0 },
     originalOrderId: { type: Schema.Types.ObjectId, ref: "Order", default: null, index: true },
     notes: { type: String, default: "" },
   },
