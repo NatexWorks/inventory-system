@@ -33,7 +33,7 @@ test.describe('Auth API', () => {
         data: { email, password },
       });
       const loginPayload = await expectSuccess(login, 200);
-      expect(loginPayload.data.user.email).toBe(email);
+      expect(loginPayload.data.user.email).toBe(email.toLowerCase());
 
       const forgot = await request.post('/api/auth/forgot-password', {
         data: { email },
