@@ -1,7 +1,9 @@
-import { redirect } from "next/navigation";
+import ResetPasswordForm from "@/app/components/ResetPasswordForm";
 
-// Thin wrapper page that passes the reset token into the form component.
+// Pass the emailed reset token to the existing password-reset UI.
 export default async function ResetPasswordPage({ searchParams }) {
-  await searchParams;
-  redirect("/");
+  const params = await searchParams;
+  const token = typeof params?.token === "string" ? params.token : "";
+
+  return <ResetPasswordForm token={token} />;
 }
