@@ -135,13 +135,40 @@ export const returnSchema = z.object({
   ).min(1),
 });
 
+// Account profile fields are stored on the User document.
+export const profileSchema = z.object({
+  name: z.string().trim().min(2, "Name must be at least 2 characters").max(120),
+  email: z.string().trim().email().max(254),
+  phone: z.string().trim().max(30).optional().default(""),
+});
+
+// Password updates always verify the current password before replacing it.
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, "Enter your current password"),
+  newPassword: z.string().min(8).max(128),
+  confirmPassword: z.string().min(8).max(128),
+}).refine((value) => value.newPassword === value.confirmPassword, {
+  message: "New passwords do not match",
+  path: ["confirmPassword"],
+});
+
 // Workspace settings validation used by the settings route and service.
 export const settingsSchema = z.object({
   inventory: z.object({
-    lowStockThreshold: z.coerce.number().int().min(0).default(5),
+    lowStockThreshold: z.coerce.number().int().min(0).max(100000).default(5),
     barcodeRules: z.string().trim().max(500).optional().default("Unique barcodes per sellable unit"),
     autoBarcodeGeneration: z.boolean().default(false),
     barcodeMode: z.enum(["optional", "strict"]).default("optional"),
+  }).default({}),
+  store: z.object({
+    storeName: z.string().trim().max(120).optional().default(""),
+    storeEmail: z.union([z.string().trim().email().max(254), z.literal("")]).optional().default(""),
+    storeAddress: z.string().trim().max(500).optional().default(""),
+  }).default({}),
+  notifications: z.object({
+    lowStockAlerts: z.boolean().default(true),
+    orderUpdates: z.boolean().default(true),
+    weeklySummary: z.boolean().default(true),
   }).default({}),
   billing: z.object({
     invoiceEnabled: z.boolean().default(true),
@@ -150,6 +177,6 @@ export const settingsSchema = z.object({
   }).default({}),
   system: z.object({
     offlineMode: z.boolean().default(true),
-    sessionTimeoutMinutes: z.coerce.number().int().min(5).default(30),
+    sessionTimeoutMinutes: z.coerce.number().int().min(5).max(1440).default(30),
   }).default({}),
 });
