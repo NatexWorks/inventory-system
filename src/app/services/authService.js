@@ -3,27 +3,34 @@ import dbConnect from "../lib/db";
 import User from "../models/userSchema";
 import Settings from "../models/settingsSchema";
 import PasswordReset from "../models/passwordResetSchema";
+import { consumeEmailOtp, sendEmailOtp } from "./otpService";
 import MagicLinkRequest from "../models/magicLinkRequestSchema";
 import {
   authLoginSchema,
   authSignupSchema,
+  signupWithOtpSchema,
+  otpResetPasswordSchema,
   forgotPasswordSchema,
   magicLinkRequestSchema,
   resetPasswordSchema,
 } from "../lib/validation";
 import { comparePassword, createAuthPayload, hashPassword, signToken } from "../lib/security";
 import crypto from "node:crypto";
-import nodemailer from "nodemailer";
 
 export async function registerUser(input) {
   await dbConnect();
-  const payload = authSignupSchema.parse(input);
+  const payload = signupWithOtpSchema.parse(input);
 
   const email = payload.email.toLowerCase();
   const exists = await User.findOne({ email });
   if (exists) {
-    throw new Error("Email already registered");
+    const error = new Error("Email already registered");
+    error.status = 409;
+    throw error;
   }
+
+  // The same six-digit email code can create an account only once and only before expiry.
+  await consumeEmailOtp({ email, otp: payload.otp, purpose: "signup" });
 
   const passwordHash = await hashPassword(payload.password);
   const user = await User.create({
@@ -32,6 +39,7 @@ export async function registerUser(input) {
     passwordHash,
     // Public self-signup always creates an owner; staff accounts need an authorized flow.
     role: "owner",
+    emailVerified: true,
   });
 
   await Settings.findOneAndUpdate(
@@ -144,104 +152,66 @@ export async function loginUser(input) {
 }
 
 export async function requestPasswordReset(input) {
-  await dbConnect();
   const payload = forgotPasswordSchema.parse(input);
   const email = payload.email.toLowerCase();
-  const user = await User.findOne({ email, isActive: true });
 
-  if (!user) {
-    return {
-      ok: true,
-      resetLink: null,
-    };
-  }
-
-  await PasswordReset.updateMany(
-    { userId: user._id, usedAt: null },
-    { $set: { usedAt: new Date() } }
-  );
-
-  const token = crypto.randomBytes(32).toString("hex");
-  const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
-  const expiresAt = new Date(Date.now() + 1000 * 60 * 30);
-
-  await PasswordReset.create({
-    userId: user._id,
-    email,
-    tokenHash,
-    expiresAt,
-  });
-
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-  const resetUrl = new URL("/reset-password", baseUrl);
-  resetUrl.searchParams.set("token", token);
-  const resetLink = resetUrl.toString();
-
-  if (process.env.NODE_ENV === "production") {
-    const host = process.env.SMTP_HOST;
-    const port = Number(process.env.SMTP_PORT || 587);
-    const userName = process.env.SMTP_USER;
-    const password = process.env.SMTP_PASS;
-    const from = process.env.SMTP_FROM || userName;
-
-    if (!host || !Number.isInteger(port) || !userName || !password || !from || !process.env.NEXT_PUBLIC_APP_URL) {
-      throw new Error("Password reset email is not configured. Set SMTP_* and NEXT_PUBLIC_APP_URL environment variables.");
-    }
-
-    const transporter = nodemailer.createTransport({
-      host,
-      port,
-      secure: port === 465,
-      auth: { user: userName, pass: password },
-    });
-    await transporter.sendMail({
-      from,
-      to: email,
-      subject: "Reset your Inventory System password",
-      text: `We received a request to reset your password. Open this link within 30 minutes: ${resetLink}. If you did not request this, you can ignore this email.`,
-      html: `<p>We received a request to reset your Inventory System password.</p><p><a href="${resetLink}">Reset your password</a></p><p>This link expires in 30 minutes. If you did not request this, you can ignore this email.</p>`,
-    });
-
-    // Never return a password-reset bearer token in a production API response.
-    return { ok: true, resetLink: null };
-  }
-
-  // Development/test convenience only. Production sends the token by email.
-  return {
-    ok: true,
-    resetLink,
-  };
+  // sendEmailOtp intentionally returns the same public result for unknown accounts.
+  return sendEmailOtp({ email, purpose: "password-reset" });
 }
 
 export async function resetPassword(input) {
   await dbConnect();
-  const payload = resetPasswordSchema.parse(input);
-  const tokenHash = crypto.createHash("sha256").update(payload.token).digest("hex");
 
-  const resetRecord = await PasswordReset.findOne({
-    tokenHash,
-    usedAt: null,
-    expiresAt: { $gt: new Date() },
-  });
+  // Keep already-issued legacy reset links valid until they expire, but all new
+  // recovery requests use the emailed six-digit code.
+  if (typeof input?.token === "string" && input.token.trim()) {
+    const payload = resetPasswordSchema.parse(input);
+    const tokenHash = crypto.createHash("sha256").update(payload.token).digest("hex");
+    const resetRecord = await PasswordReset.findOne({
+      tokenHash,
+      usedAt: null,
+      expiresAt: { $gt: new Date() },
+    });
 
-  if (!resetRecord) {
-    throw new Error("Reset token is invalid or expired");
+    if (!resetRecord) {
+      throw new Error("Reset token is invalid or expired");
+    }
+
+    const user = await User.findById(resetRecord.userId);
+    if (!user || !user.isActive) {
+      throw new Error("User not found");
+    }
+
+    user.passwordHash = await hashPassword(payload.password);
+    await user.save();
+
+    resetRecord.usedAt = new Date();
+    await resetRecord.save();
+
+    return { user: user.toObject() };
   }
 
-  const user = await User.findById(resetRecord.userId);
-  if (!user || !user.isActive) {
-    throw new Error("User not found");
+  const payload = otpResetPasswordSchema.parse(input);
+  const email = payload.email.toLowerCase();
+
+  await consumeEmailOtp({ email, otp: payload.otp, purpose: "password-reset" });
+
+  const user = await User.findOne({ email, isActive: true });
+  if (!user) {
+    // Return the same non-specific error even if an account changed after OTP issuance.
+    throw new Error("The verification code is invalid or expired.");
   }
 
   user.passwordHash = await hashPassword(payload.password);
   await user.save();
 
-  resetRecord.usedAt = new Date();
-  await resetRecord.save();
+  // Invalidate older links as well as any lingering OTPs for this address.
+  await PasswordReset.updateMany(
+    { email, usedAt: null },
+    { $set: { usedAt: new Date() } }
+  );
 
-  return {
-    user: user.toObject(),
-  };
+  return { user: user.toObject() };
 }
 
 export async function getUserById(userId) {
