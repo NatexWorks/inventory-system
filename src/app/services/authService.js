@@ -13,6 +13,7 @@ import {
 } from "../lib/validation";
 import { comparePassword, createAuthPayload, hashPassword, signToken } from "../lib/security";
 import crypto from "node:crypto";
+import nodemailer from "nodemailer";
 
 export async function registerUser(input) {
   await dbConnect();
@@ -171,12 +172,44 @@ export async function requestPasswordReset(input) {
   });
 
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-  const resetLink = `${baseUrl}/reset-password?token=${token}`;
+  const resetUrl = new URL("/reset-password", baseUrl);
+  resetUrl.searchParams.set("token", token);
+  const resetLink = resetUrl.toString();
 
+  if (process.env.NODE_ENV === "production") {
+    const host = process.env.SMTP_HOST;
+    const port = Number(process.env.SMTP_PORT || 587);
+    const userName = process.env.SMTP_USER;
+    const password = process.env.SMTP_PASS;
+    const from = process.env.SMTP_FROM || userName;
+
+    if (!host || !Number.isInteger(port) || !userName || !password || !from || !process.env.NEXT_PUBLIC_APP_URL) {
+      throw new Error("Password reset email is not configured. Set SMTP_* and NEXT_PUBLIC_APP_URL environment variables.");
+    }
+
+    const transporter = nodemailer.createTransport({
+      host,
+      port,
+      secure: port === 465,
+      auth: { user: userName, pass: password },
+    });
+    await transporter.sendMail({
+      from,
+      to: email,
+      subject: "Reset your Inventory System password",
+      text: `We received a request to reset your password. Open this link within 30 minutes: ${resetLink}. If you did not request this, you can ignore this email.`,
+      html: `<p>We received a request to reset your Inventory System password.</p><p><a href="${resetLink}">Reset your password</a></p><p>This link expires in 30 minutes. If you did not request this, you can ignore this email.</p>`,
+    });
+
+    // Never return a password-reset bearer token in a production API response.
+    return { ok: true, resetLink: null };
+  }
+
+  // Development/test convenience only. Production sends the token by email.
   return {
     ok: true,
     resetLink,
-  };
+  };;
 }
 
 export async function resetPassword(input) {
