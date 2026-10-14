@@ -147,6 +147,7 @@ export default function ProductsPage() {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Restore the user preference from browser storage after hydration.
     setTipsVisible(window.localStorage.getItem("inventory.products.tipsHidden") !== "true");
   }, []);
 
