@@ -4,6 +4,25 @@ import Barcode from "../models/barcodeSchema";
 import Product from "../models/productSchema";
 import { BARCODE_STATES, assertBarcodeTransition } from "../lib/stateMachine";
 
+async function getBarcodeProductMode(userId, productId, mongoSession = null) {
+  const query = Product.findOne({ _id: productId, userId }).select("barcodeMode");
+  if (mongoSession) query.session(mongoSession);
+  const product = await query.lean();
+  return product?.barcodeMode || "PRODUCT";
+}
+
+async function keepReusableProductBarcodeAvailable(barcode, mongoSession = null) {
+  if (barcode.state === BARCODE_STATES.AVAILABLE) return barcode;
+  barcode.state = BARCODE_STATES.AVAILABLE;
+  barcode.sessionId = null;
+  barcode.orderId = null;
+  barcode.reservedAt = null;
+  barcode.soldAt = null;
+  barcode.returnedAt = null;
+  await barcode.save(mongoSession ? { session: mongoSession } : undefined);
+  return barcode;
+}
+
 export async function ensureBarcode(userId, productId, code) {
   await dbConnect();
 
@@ -80,6 +99,14 @@ export async function reserveBarcode(userId, code, sessionId, mongoSession = nul
     throw new Error("Barcode not found");
   }
 
+  if (await getBarcodeProductMode(userId, barcode.productId, mongoSession) !== "UNIT") {
+    return keepReusableProductBarcodeAvailable(barcode, mongoSession);
+  }
+
+  if (await getBarcodeProductMode(userId, barcode.productId, mongoSession) !== "UNIT") {
+    return keepReusableProductBarcodeAvailable(barcode, mongoSession);
+  }
+
   if (barcode.state === BARCODE_STATES.SOLD) {
     throw new Error("Barcode already sold");
   }
@@ -119,6 +146,10 @@ export async function sellBarcode(userId, code, orderId, mongoSession = null) {
     throw new Error("Barcode not found");
   }
 
+  if (await getBarcodeProductMode(userId, barcode.productId, mongoSession) !== "UNIT") {
+    return keepReusableProductBarcodeAvailable(barcode, mongoSession);
+  }
+
   if (barcode.state === BARCODE_STATES.SOLD) {
     return barcode;
   }
@@ -138,6 +169,10 @@ export async function releaseReservedBarcode(userId, code, mongoSession = null) 
     throw new Error("Barcode not found");
   }
 
+  if (await getBarcodeProductMode(userId, barcode.productId, mongoSession) !== "UNIT") {
+    return keepReusableProductBarcodeAvailable(barcode, mongoSession);
+  }
+
   if (barcode.state !== BARCODE_STATES.RESERVED) {
     return barcode;
   }
@@ -155,6 +190,10 @@ export async function returnBarcode(userId, code, mongoSession = null) {
   const barcode = await getBarcodeByCode(userId, code);
   if (!barcode) {
     throw new Error("Barcode not found");
+  }
+
+  if (await getBarcodeProductMode(userId, barcode.productId, mongoSession) !== "UNIT") {
+    return keepReusableProductBarcodeAvailable(barcode, mongoSession);
   }
 
   if (barcode.state !== BARCODE_STATES.SOLD) {
