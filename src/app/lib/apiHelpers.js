@@ -2,41 +2,9 @@ import { NextResponse } from "next/server";
 import { getAuthenticatedUser } from "./security";
 import dbConnect from "./db";
 import User from "../models/userSchema";
-import crypto from "node:crypto";
 
 const authBuckets = new Map();
-const WORKSPACE_USER_EMAIL = "workspace@inventory.local";
-
-async function getDefaultWorkspaceAuth() {
-  await dbConnect();
-
-  const existingUser = await User.findOne({ isActive: true }).sort({ createdAt: 1 }).lean();
-  if (existingUser) {
-    return {
-      userId: String(existingUser._id),
-      role: "owner",
-    };
-  }
-
-  const guestUser = await User.findOneAndUpdate(
-    { email: WORKSPACE_USER_EMAIL },
-    {
-      $setOnInsert: {
-        name: "Inventory User",
-        email: WORKSPACE_USER_EMAIL,
-        passwordHash: crypto.randomBytes(32).toString("hex"),
-        role: "owner",
-        isActive: true,
-      },
-    },
-    { upsert: true, returnDocument: "after" }
-  );
-
-  return {
-    userId: String(guestUser._id),
-    role: "owner",
-  };
-}
+// Authentication must never fall back to a shared/default workspace.
 
 export class HttpError extends Error {
   constructor(message, status = 400, errors = null) {
@@ -73,19 +41,23 @@ export async function parseJsonBody(request) {
 export async function assertAuth(request, { roles = null } = {}) {
   const auth = await getAuthenticatedUser(request);
   if (!auth?.userId) {
-    const fallbackAuth = await getDefaultWorkspaceAuth();
-    if (roles && !roles.includes(fallbackAuth.role)) {
-      throw new HttpError("Forbidden", 403);
-    }
-
-    return fallbackAuth;
+    throw new HttpError("Unauthorized", 401);
   }
 
-  if (roles && !roles.includes(auth.role)) {
+  // Resolve the live account on each protected request so disabled accounts and
+  // changed roles cannot keep using a previously issued JWT.
+  await dbConnect();
+  const user = await User.findById(auth.userId).select("role isActive").lean();
+  if (!user || user.isActive === false) {
+    throw new HttpError("Unauthorized", 401);
+  }
+
+  const currentAuth = { ...auth, role: user.role };
+  if (roles && !roles.includes(currentAuth.role)) {
     throw new HttpError("Forbidden", 403);
   }
 
-  return auth;
+  return currentAuth;
 }
 
 export async function assertOwner(request) {
