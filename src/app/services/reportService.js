@@ -4,6 +4,7 @@ import dbConnect from "../lib/db";
 import Product from "../models/productSchema";
 import Order from "../models/orderSchema";
 import Category from "../models/categorySchema";
+import Settings from "../models/settingsSchema";
 
 function toObjectId(value) {
   return mongoose.Types.ObjectId.isValid(String(value)) ? new mongoose.Types.ObjectId(String(value)) : null;
@@ -12,12 +13,14 @@ function toObjectId(value) {
 export async function buildDashboardSummary(userId) {
   await dbConnect();
   const userObjectId = toObjectId(userId);
+  const workspaceSettings = await Settings.findOne({ userId }).select("inventory.lowStockThreshold notifications.lowStockAlerts").lean();
+  const lowStockThreshold = Math.max(0, Number(workspaceSettings?.inventory?.lowStockThreshold ?? 5));
 
-  const [totalProducts, lowStockProducts, recentOrders, lowStockItems, topProducts, revenueAgg, categoryAgg] = await Promise.all([
+  const [totalProducts, lowStockProducts, recentOrders, lowStockItems, topProducts, revenueAgg, categoryAgg, inventoryValueAgg] = await Promise.all([
     Product.countDocuments({ userId }),
-    Product.countDocuments({ userId, stock: { $lte: 5 } }),
+    Product.countDocuments({ userId, stock: { $lte: lowStockThreshold } }),
     Order.find({ userId }).sort({ createdAt: -1 }).limit(5).lean(),
-    Product.find({ userId, stock: { $lte: 5 } }).sort({ stock: 1, updatedAt: -1 }).limit(5).lean(),
+    Product.find({ userId, stock: { $lte: lowStockThreshold } }).sort({ stock: 1, updatedAt: -1 }).limit(5).lean(),
     Product.find({ userId }).sort({ stock: -1, updatedAt: -1 }).limit(5).lean(),
     Order.aggregate([
       { $match: { userId: userObjectId } },
@@ -31,11 +34,25 @@ export async function buildDashboardSummary(userId) {
       { $sort: { count: -1 } },
       { $limit: 1 },
     ]),
+    Product.aggregate([
+      { $match: { userId: userObjectId } },
+      { $group: {
+        _id: null,
+        inventoryValue: { $sum: { $multiply: [{ $ifNull: ["$costPrice", 0] }, { $ifNull: ["$stock", 0] }] } },
+        retailInventoryValue: { $sum: { $multiply: [{ $ifNull: ["$price", 0] }, { $ifNull: ["$stock", 0] }] } },
+        totalUnitsInStock: { $sum: { $ifNull: ["$stock", 0] } },
+      } },
+    ]),
   ]);
 
   return {
     totalProducts,
     lowStockProducts,
+    lowStockThreshold,
+    lowStockAlertsEnabled: workspaceSettings?.notifications?.lowStockAlerts ?? true,
+    inventoryValue: inventoryValueAgg[0]?.inventoryValue || 0,
+    retailInventoryValue: inventoryValueAgg[0]?.retailInventoryValue || 0,
+    totalUnitsInStock: inventoryValueAgg[0]?.totalUnitsInStock || 0,
     recentOrders,
     totalRevenue: revenueAgg[0]?.totalRevenue || 0,
     totalSales: revenueAgg[0]?.totalSales || 0,
