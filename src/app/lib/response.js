@@ -26,11 +26,14 @@ export function failure(message, errors = null, status = 400) {
   );
 }
 
+// Never expose internal exception messages, credentials, or infrastructure details.
+const MAINTENANCE_MESSAGE = "Site under maintenance. Please try again shortly.";
+
 // Normalizes thrown errors into a standard API response payload.
 export function normalizeError(error) {
   if (!error) {
     return {
-      message: "Unexpected error",
+      message: MAINTENANCE_MESSAGE,
       status: 500,
       errors: null,
     };
@@ -56,6 +59,18 @@ export function normalizeError(error) {
     };
   }
 
+  const status = Number.isInteger(error.status) ? error.status : 500;
+
+  // Expected client errors can keep safe, actionable messages. Server-side failures
+  // always receive the same generic response; the original error remains server-side.
+  if (status >= 500) {
+    return {
+      message: MAINTENANCE_MESSAGE,
+      status,
+      errors: null,
+    };
+  }
+
   if (error.status) {
     return {
       message: error.message || "Something went wrong",
@@ -65,8 +80,8 @@ export function normalizeError(error) {
   }
 
   return {
-    message: error.message || "Something went wrong",
-    status: error.status || 500,
+    message: "Something went wrong. Please check your request and try again.",
+    status: 400,
     errors: error.errors || null,
   };
 }
