@@ -61,18 +61,44 @@ async function putJson(baseUrl: string, pathname: string, body: unknown, cookie?
 }
 
 async function signupUser(baseUrl: string, user: SeededUser) {
-  const signup = await postJson(baseUrl, '/api/auth/signup', user);
-  if (!signup.response.ok) {
+  const otpRequest = await postJson(baseUrl, '/api/auth/send-otp', {
+    email: user.email,
+    purpose: 'signup',
+  });
+
+  if (!otpRequest.response.ok) {
     const login = await postJson(baseUrl, '/api/auth/login', { email: user.email, password: user.password });
     if (!login.response.ok) {
-      throw new Error(`Unable to create test user ${user.email}`);
+      throw new Error(`Unable to request test signup OTP for ${user.email}: ${JSON.stringify(otpRequest.payload)}`);
     }
 
     const cookie = login.response.headers.get('set-cookie');
     if (!cookie) {
       throw new Error('Missing auth cookie from login response');
     }
+    return buildAuthState(cookie, baseUrl);
+  }
 
+  const otp = otpRequest.payload?.data?.developmentOtp;
+  if (!otp || !/^[0-9]{6}$/.test(String(otp))) {
+    throw new Error('Test signup needs OTP_DEV_RETURN_CODE=true in the local Playwright web server environment.');
+  }
+
+  const signup = await postJson(baseUrl, '/api/auth/signup', {
+    name: user.name,
+    email: user.email,
+    password: user.password,
+    otp: String(otp),
+  });
+
+  if (!signup.response.ok) {
+    const login = await postJson(baseUrl, '/api/auth/login', { email: user.email, password: user.password });
+    if (!login.response.ok) {
+      throw new Error(`Unable to create test user ${user.email}: ${JSON.stringify(signup.payload)}`);
+    }
+
+    const cookie = login.response.headers.get('set-cookie');
+    if (!cookie) throw new Error('Missing auth cookie from login response');
     return buildAuthState(cookie, baseUrl);
   }
 
