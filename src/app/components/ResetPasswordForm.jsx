@@ -22,6 +22,7 @@ export default function ResetPasswordForm({ token = "", email = "" }) {
   const [error, setError] = useState("");
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Synchronize the form when the URL email changes without a remount.
     setForm((current) => ({ ...current, email }));
   }, [email]);
 
@@ -30,6 +31,7 @@ export default function ResetPasswordForm({ token = "", email = "" }) {
     if (typeof window === "undefined" || isLegacyToken) return;
     const developmentOtp = sessionStorage.getItem("inventory-reset-development-otp");
     if (developmentOtp) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Hydrate the one-time local test code from sessionStorage.
       setForm((current) => ({ ...current, otp: developmentOtp }));
       sessionStorage.removeItem("inventory-reset-development-otp");
     }
