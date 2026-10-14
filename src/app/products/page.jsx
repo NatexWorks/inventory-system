@@ -101,13 +101,10 @@ function StatCard({ title, value, helper, icon, accent }) {
   );
 }
 
-function buildBarcodeDrafts(product) {
-  const stockCount = Math.max(0, Number(product?.stock || 0));
-  const existingCodes = Array.isArray(product?.barcodes)
-    ? product.barcodes.map((item) => String(item?.code || "").trim()).filter(Boolean)
-    : [];
-
-  return Array.from({ length: stockCount }, (_, index) => existingCodes[index] || "");
+function buildBarcodeDrafts() {
+  // The Products page adds new assignments; existing barcodes are never
+  // prefilled here, so saving cannot accidentally replace them.
+  return [""];
 }
 
 export default function ProductsPage() {
@@ -283,7 +280,7 @@ export default function ProductsPage() {
 
   const openBarcodeEditor = (product) => {
     setBarcodeEditorTarget(product);
-    setBarcodeDrafts(buildBarcodeDrafts(product));
+    setBarcodeDrafts(buildBarcodeDrafts());
     setBarcodeEditorError("");
     setBarcodeEditorSaving(false);
   };
@@ -297,7 +294,9 @@ export default function ProductsPage() {
       return;
     }
 
+    const isUnitBarcodeMode = barcodeEditorTarget.barcodeMode === "UNIT";
     const stockCount = Math.max(0, Number(barcodeEditorTarget.stock || 0));
+    const currentBarcodeCount = Array.isArray(barcodeEditorTarget.barcodes) ? barcodeEditorTarget.barcodes.length : 0;
     const normalizedBarcodes = [];
     const seen = new Set();
 
@@ -316,8 +315,13 @@ export default function ProductsPage() {
       normalizedBarcodes.push({ code, state: "AVAILABLE" });
     }
 
-    if (stockCount > 0 && normalizedBarcodes.length > stockCount) {
-      setBarcodeEditorError("Barcode count cannot be greater than stock quantity.");
+    if (normalizedBarcodes.length === 0) {
+      setBarcodeEditorError("Enter at least one barcode to add.");
+      return;
+    }
+
+    if (isUnitBarcodeMode && normalizedBarcodes.length > Math.max(0, stockCount - currentBarcodeCount)) {
+      setBarcodeEditorError(`Only ${Math.max(0, stockCount - currentBarcodeCount)} unassigned stock barcode slot(s) remain.`);
       return;
     }
 
@@ -325,8 +329,8 @@ export default function ProductsPage() {
       setBarcodeEditorSaving(true);
       setBarcodeEditorError("");
 
-      const response = await fetch(`/api/product/${barcodeEditorTarget._id}`, {
-        method: "PUT",
+      const response = await fetch(`/api/product/${barcodeEditorTarget._id}/barcodes`, {
+        method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({
@@ -829,7 +833,7 @@ export default function ProductsPage() {
                 <p className="text-xs font-semibold uppercase tracking-[0.28em] text-emerald-500">Add Barcodes</p>
                 <h3 className="mt-2 text-xl font-bold text-slate-900">{barcodeEditorTarget.name}</h3>
                 <p className="mt-1 text-sm text-slate-500">
-                  Stock {Number(barcodeEditorTarget.stock || 0)} | Existing barcodes {Array.isArray(barcodeEditorTarget.barcodes) ? barcodeEditorTarget.barcodes.length : 0}
+                  Stock {Number(barcodeEditorTarget.stock || 0)} | Existing barcodes {Array.isArray(barcodeEditorTarget.barcodes) ? barcodeEditorTarget.barcodes.length : 0} | Mode {barcodeEditorTarget.barcodeMode || "PRODUCT"}
                 </p>
               </div>
               <button
@@ -844,8 +848,20 @@ export default function ProductsPage() {
 
             <div className="p-5">
               <div className="rounded-3xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-                Optional: fill any barcode slots you want to assign. Leave the rest blank if you do not want to save barcodes now.
+                Add new barcode codes below. Existing assignments are preserved. {barcodeEditorTarget.barcodeMode === "UNIT" ? "Unit barcodes are limited by the remaining stock quantity." : "Product barcodes can be assigned even when stock is zero."}
               </div>
+              {Array.isArray(barcodeEditorTarget.barcodes) && barcodeEditorTarget.barcodes.length > 0 ? (
+                <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4">
+                  <p className="text-sm font-semibold text-slate-900">Already assigned</p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {barcodeEditorTarget.barcodes.map((item, index) => (
+                      <span key={`${item.code}-existing-${index}`} className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-600">
+                        {item.code}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
 
               {barcodeDrafts.length > 0 ? (
                 <div className="mt-4 max-h-[55vh] space-y-3 overflow-auto pr-1">
@@ -867,11 +883,16 @@ export default function ProductsPage() {
                     </div>
                   ))}
                 </div>
-              ) : (
-                <div className="mt-4 rounded-3xl border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
-                  This product has 0 stock, so there are no barcode slots to fill right now.
-                </div>
-              )}
+              ) : null}
+              <button
+                type="button"
+                onClick={() => setBarcodeDrafts((current) => [...current, ""])}
+                disabled={barcodeEditorTarget.barcodeMode === "UNIT" && barcodeDrafts.length >= Math.max(0, Number(barcodeEditorTarget.stock || 0) - (Array.isArray(barcodeEditorTarget.barcodes) ? barcodeEditorTarget.barcodes.length : 0))}
+                className="mt-3 inline-flex items-center gap-2 rounded-2xl border border-emerald-200 bg-white px-4 py-2 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <MdAdd />
+                Add another barcode
+              </button>
 
               {barcodeEditorError ? (
                 <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
