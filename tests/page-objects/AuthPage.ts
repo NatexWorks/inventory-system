@@ -9,6 +9,7 @@ export class AuthPage extends BasePage {
   emailInput = this.page.getByLabel('Email');
   passwordInput = this.page.getByLabel('Password');
   nameInput = this.page.getByLabel('Full Name');
+  otpInput = this.page.getByLabel('Email verification code');
   submitButton = this.page.getByRole('button', { name: /login|create account/i });
 
   async login(email: string, password: string) {
@@ -21,7 +22,16 @@ export class AuthPage extends BasePage {
     await this.nameInput.fill(name);
     await this.emailInput.fill(email);
     await this.passwordInput.fill(password);
-    await this.page.getByRole('button', { name: /create account/i }).click();
+    await this.page.getByRole('button', { name: /send verification code/i }).click();
+
+    const debugMessage = await this.page.getByText(/Development OTP:/).textContent();
+    const otp = debugMessage?.match(/[0-9]{6}/)?.[0];
+    if (!otp) {
+      throw new Error('No local test OTP was displayed. Check the Playwright OTP_DEV_RETURN_CODE setting.');
+    }
+
+    await this.otpInput.fill(otp);
+    await this.page.getByRole('button', { name: /verify code & create account/i }).click();
   }
 
   async expectError(text: string | RegExp) {
