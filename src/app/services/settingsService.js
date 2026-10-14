@@ -17,6 +17,8 @@ export async function upsertSettings(userId, input) {
       $set: {
         userId,
         inventory: payload.inventory,
+        store: payload.store,
+        notifications: payload.notifications,
         billing: payload.billing,
         system: payload.system,
       },
