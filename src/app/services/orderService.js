@@ -176,38 +176,57 @@ export async function createOrder(userId, input, settings = {}) {
       const unitBarcodesToReserve = [];
       for (const item of input.items || []) {
         const identity = await resolveBarcodeIdentity(userId, item, session);
+        if (!identity.productId) throw new HttpError("Every order item must reference a valid product", 400);
+
+        const productQuery = Product.findOne({ _id: identity.productId, userId }).select("name price stock barcodeMode");
+        productQuery.session(session);
+        const product = await productQuery.lean();
+        if (!product) throw new HttpError("One of the selected products no longer exists", 404);
+
+        const quantity = Number(item.quantity);
+        if (!Number.isInteger(quantity) || quantity < 1) {
+          throw new HttpError(`Quantity for ${product.name} must be a positive whole number`, 400);
+        }
+        if (identity.barcode && identity.barcodeMode === "UNIT" && quantity !== 1) {
+          throw new HttpError(`Barcode ${identity.barcode} represents one unit only`, 400);
+        }
+
+        const price = Number(product.price || 0);
         items.push({
           productId: identity.productId,
           barcodeId: identity.barcodeId,
           barcode: identity.barcode,
-          name: item.name,
-          quantity: Number(item.quantity || 1),
-          price: Number(item.price || 0),
-          lineTotal: Number(item.lineTotal || Number(item.price || 0) * Number(item.quantity || 1)),
+          name: product.name,
+          quantity,
+          price,
+          lineTotal: price * quantity,
         });
         if (identity.barcode && identity.barcodeMode === "UNIT") {
           unitBarcodesToReserve.push(identity.barcode);
         }
       }
 
-      const amounts = calculateAmounts(items, settings?.billing?.taxPercentage || 0, input.discountAmount || 0);
+      const discountAmount = Number(input.discountAmount || 0);
+      const subtotal = items.reduce((sum, item) => sum + item.lineTotal, 0);
+      if (!Number.isFinite(discountAmount) || discountAmount < 0 || discountAmount > subtotal) {
+        throw new HttpError("Discount must be between zero and the order subtotal", 400);
+      }
+      const amounts = calculateAmounts(items, settings?.billing?.taxPercentage || 0, discountAmount);
       const [order] = await Order.create(
-        [
-          {
-            userId,
-            sessionId: input.sessionId || null,
-            orderNumber: nextOrderNumber(),
-            customerName: input.customerName || "Walk-in Customer",
-            customerPhone: input.customerPhone || "",
-            status: input.status || ORDER_STATES.DRAFT,
-            items,
-            subtotal: amounts.subtotal,
-            taxAmount: input.taxAmount ?? amounts.taxAmount,
-            discountAmount: input.discountAmount || 0,
-            totalAmount: input.totalAmount ?? amounts.totalAmount,
-            notes: input.notes || "",
-          },
-        ],
+        [{
+          userId,
+          sessionId: input.sessionId || null,
+          orderNumber: nextOrderNumber(),
+          customerName: input.customerName || "Walk-in Customer",
+          customerPhone: input.customerPhone || "",
+          status: input.status || ORDER_STATES.DRAFT,
+          items,
+          subtotal: amounts.subtotal,
+          taxAmount: amounts.taxAmount,
+          discountAmount,
+          totalAmount: amounts.totalAmount,
+          notes: input.notes || "",
+        }],
         { session }
       );
 
