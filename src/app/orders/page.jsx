@@ -482,6 +482,67 @@ export default function OrdersPage() {
     }
   }
 
+  function printInvoice(order) {
+    if (settings?.billing?.invoiceEnabled === false) {
+      setActionMessage("Invoice printing is disabled in Settings.");
+      return;
+    }
+
+    const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, (character) => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+    }[character]));
+    const format = settings?.billing?.invoiceFormat || "simple";
+    const storeName = settings?.store?.storeName || "Store";
+    const storeEmail = settings?.store?.storeEmail || "";
+    const storeAddress = settings?.store?.storeAddress || "";
+    const subtotal = Number(order.subtotal ?? (order.items || []).reduce((sum, item) => sum + Number(item.lineTotal || Number(item.price || 0) * Number(item.quantity || 0)), 0));
+    const tax = Number(order.taxAmount || 0);
+    const discount = Number(order.discountAmount || 0);
+    const total = Number(order.totalAmount ?? subtotal + tax - discount);
+    const date = order.createdAt ? orderDateTimeFormatter.format(new Date(order.createdAt)) : orderDateTimeFormatter.format(new Date());
+    const detailed = format === "detailed";
+    const itemRows = (order.items || []).map((item) => {
+      const lineTotal = Number(item.lineTotal ?? Number(item.price || 0) * Number(item.quantity || 0));
+      return `<tr><td>${escapeHtml(item.name)}${detailed && item.barcode ? `<small class="meta">Barcode: ${escapeHtml(item.barcode)}</small>` : ""}</td><td class="num">${Number(item.quantity || 0)}</td><td class="num">${formatCurrencyForInvoice(item.price)}</td><td class="num">${formatCurrencyForInvoice(lineTotal)}</td></tr>`;
+    }).join("");
+    const printWindow = window.open("", "_blank", "width=900,height=700");
+    if (!printWindow) {
+      setActionMessage("Allow pop-ups to print the invoice.");
+      return;
+    }
+
+    const thermal = format === "thermal";
+    const html = `<!doctype html><html><head><meta charset="utf-8"><title>Invoice ${escapeHtml(order.orderNumber)}</title>
+      <style>
+        *{box-sizing:border-box}body{font-family:Arial,Helvetica,sans-serif;color:#111827;margin:0;padding:28px;font-size:13px}
+        .invoice{max-width:820px;margin:0 auto}.top{display:flex;justify-content:space-between;gap:24px;border-bottom:2px solid #111827;padding-bottom:18px;margin-bottom:18px}
+        h1{font-size:24px;margin:0 0 8px}.muted{color:#6b7280;line-height:1.5}.right{text-align:right}.meta{display:block;color:#6b7280;font-size:10px;margin-top:4px}
+        .customer{margin:18px 0}.customer strong{display:block;margin-bottom:5px}table{width:100%;border-collapse:collapse;margin-top:18px}
+        th,td{padding:10px 8px;border-bottom:1px solid #e5e7eb;text-align:left;vertical-align:top}th{background:#f3f4f6;font-size:11px;text-transform:uppercase}
+        .num{text-align:right;white-space:nowrap}.totals{width:280px;margin:18px 0 0 auto}.totals div{display:flex;justify-content:space-between;padding:5px 0}.grand{border-top:2px solid #111827;margin-top:6px;padding-top:10px!important;font-size:17px;font-weight:700}
+        .footer{margin-top:28px;border-top:1px solid #e5e7eb;padding-top:14px;text-align:center;color:#6b7280}
+        ${thermal ? "@page{size:80mm auto;margin:4mm}body{padding:0;font-size:11px}.invoice{width:72mm;max-width:72mm}.top{display:block;text-align:center;border-bottom:1px dashed #111827}.right{text-align:center}.top h1{font-size:18px}.customer{margin:12px 0}table{font-size:10px}th,td{padding:6px 2px}.totals{width:100%}.grand{font-size:14px}" : ""}
+        @media print{body{padding:${thermal ? "0" : "12px"}}.no-print{display:none}}
+      </style></head><body><main class="invoice">
+      <header class="top"><div><h1>${escapeHtml(storeName)}</h1><div class="muted">${escapeHtml(storeAddress).replace(/\n/g, "<br>")}</div>${storeEmail ? `<div class="muted">${escapeHtml(storeEmail)}</div>` : ""}</div>
+      <div class="right"><h1>${thermal ? "RECEIPT" : "INVOICE"}</h1><div><strong>${escapeHtml(order.orderNumber || "Order")}</strong></div><div class="muted">${escapeHtml(date)}</div><div class="muted">Status: ${escapeHtml(order.status || "COMPLETED")}</div></div></header>
+      <section class="customer"><strong>Bill To</strong>${escapeHtml(order.customerName || "Walk-in Customer")}${order.customerPhone ? `<div class="muted">${escapeHtml(order.customerPhone)}</div>` : ""}</section>
+      <table><thead><tr><th>Item</th><th class="num">Qty</th><th class="num">Price</th><th class="num">Amount</th></tr></thead><tbody>${itemRows}</tbody></table>
+      <section class="totals"><div><span>Subtotal</span><strong>${formatCurrencyForInvoice(subtotal)}</strong></div>${discount ? `<div><span>Discount</span><strong>- ${formatCurrencyForInvoice(discount)}</strong></div>` : ""}${tax ? `<div><span>Tax</span><strong>${formatCurrencyForInvoice(tax)}</strong></div>` : ""}<div class="grand"><span>Total</span><span>${formatCurrencyForInvoice(total)}</span></div></section>
+      ${detailed && order.notes ? `<p class="muted"><strong>Notes:</strong> ${escapeHtml(order.notes)}</p>` : ""}
+      <footer class="footer">${thermal ? "Thank you for shopping with us!" : "Thank you for your business."}</footer>
+      <div class="no-print" style="text-align:center;margin-top:22px"><button onclick="window.print()" style="background:#4f46e5;color:#fff;border:0;padding:10px 18px;border-radius:8px;cursor:pointer">Print invoice</button></div>
+      </main><script>window.addEventListener('load',()=>{setTimeout(()=>window.print(),250)});</script></body></html>`;
+    printWindow.document.open();
+    printWindow.document.write(html);
+    printWindow.document.close();
+    setActionMessage(`Invoice ${order.orderNumber || ""} opened for printing.`);
+  }
+
+  function formatCurrencyForInvoice(value) {
+    return `₹${Number(value || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  }
+
   const filteredOrders = useMemo(() => {
     // Memoize the filtered list so typing in search stays efficient.
     if (!search) {
@@ -800,7 +861,7 @@ export default function OrdersPage() {
                       <th className="px-5 py-4 font-semibold">Customer</th>
                       <th className="px-5 py-4 font-semibold">Date</th>
                       <th className="px-5 py-4 font-semibold">Amount</th>
-                      <th className="px-5 py-4 font-semibold">Status</th>
+                      <th className="px-5 py-4 font-semibold">Status</th>\n                      <th className="px-5 py-4 font-semibold">Invoice</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -829,6 +890,11 @@ export default function OrdersPage() {
                             ) : null}
                           </div>
                         </td>
+                        <td className="px-5 py-4">
+                          {order.status === "COMPLETED" && settings?.billing?.invoiceEnabled !== false ? (
+                            <button type="button" onClick={() => printInvoice(order)} className="rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-700 hover:bg-indigo-100">Print invoice</button>
+                          ) : <span className="text-xs text-slate-400">—</span>}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -855,6 +921,9 @@ export default function OrdersPage() {
                         <p className="mt-1 font-medium text-slate-900">₹{Number(order.totalAmount || 0).toLocaleString("en-IN")}</p>
                       </div>
                     </div>
+                    {order.status === "COMPLETED" && settings?.billing?.invoiceEnabled !== false ? (
+                      <button type="button" onClick={() => printInvoice(order)} className="mt-4 w-full rounded-2xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-sm font-semibold text-indigo-700">Print invoice</button>
+                    ) : null}
                     {order.status === "PENDING_APPROVAL" || order.status === "DRAFT" ? (
                       <div className="mt-4 flex gap-2">
                         <button onClick={() => handleApprove(order._id)} className="flex-1 rounded-2xl bg-emerald-600 px-3 py-2 text-sm font-semibold text-white">Approve</button>
