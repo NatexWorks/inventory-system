@@ -84,6 +84,37 @@ function buildChartPath(values, width, height, padding) {
     return `${index === 0 ? "M" : "L"} ${x} ${y}`;
   }).join(" ");
 }
+function HorizontalBarChart({ title, subtitle, items, labelKey = "name", valueKey = "revenue", valueFormatter = money, colorClass = "bg-indigo-500", emptyMessage = "No data available for this period." }) {
+  const maximum = Math.max(1, ...items.map((item) => Number(item[valueKey] || 0)));
+  return (
+    <section className="rounded-[28px] border border-white/70 bg-white/90 p-5 shadow-[0_24px_70px_rgba(15,23,42,0.08)]">
+      <h2 className="text-lg font-bold text-slate-900">{title}</h2>
+      <p className="mt-1 text-sm text-slate-500">{subtitle}</p>
+      {items.length === 0 ? (
+        <div className="mt-5 rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-5 text-sm text-slate-500">{emptyMessage}</div>
+      ) : (
+        <div role="img" aria-label={title} className="mt-5 space-y-4">
+          {items.map((item, index) => {
+            const value = Math.max(0, Number(item[valueKey] || 0));
+            const width = value > 0 ? Math.max(2, (value / maximum) * 100) : 0;
+            return (
+              <div key={item.key || item[labelKey] || index}>
+                <div className="mb-1.5 flex items-start justify-between gap-3 text-sm">
+                  <span className="min-w-0 break-words font-medium text-slate-700">{item[labelKey] || "Unspecified"}</span>
+                  <span className="shrink-0 font-semibold tabular-nums text-slate-900">{valueFormatter(value)}</span>
+                </div>
+                <div className="h-3 overflow-hidden rounded-full bg-slate-100">
+                  <div className={`h-full rounded-full ${colorClass}`} style={{ width: `${width}%` }} />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </section>
+  );
+}
+
 function StatCard({ title, value, helper, icon: Icon, accent }) {
   return (
     <div className="rounded-3xl border border-white/70 bg-white/90 p-4 shadow-[0_16px_35px_rgba(15,23,42,0.08)] backdrop-blur">
@@ -191,6 +222,19 @@ export default function ReportsPage() {
   const orders = buckets.reduce((sum, item) => sum + Number(item.orders || 0), 0);
   const unitsSold = buckets.reduce((sum, item) => sum + Number(item.unitsSold || 0), 0);
   const averageOrderValue = orders ? revenue / orders : 0;
+  const categoryBars = [...(data?.categoryPerformance || [])]
+    .filter((item) => String(item.name || "").toLowerCase().includes(search.toLowerCase()))
+    .sort((a, b) => Number(b.revenue || 0) - Number(a.revenue || 0))
+    .slice(0, 6);
+  const productRevenueBars = [...(data?.productPerformance || [])]
+    .sort((a, b) => Number(b.revenue || 0) - Number(a.revenue || 0))
+    .slice(0, 8);
+  const orderStatusBars = Object.entries((data?.orders || []).reduce((counts, order) => {
+    const status = String(order.status || "Unknown");
+    counts[status] = (counts[status] || 0) + 1;
+    return counts;
+  }, {})).map(([name, count]) => ({ name: name.replaceAll("_", " "), count }))
+    .sort((a, b) => b.count - a.count);
 
   function exportCsv() {
     if (!table.rows.length) {
@@ -305,6 +349,42 @@ export default function ReportsPage() {
                 <div className="mt-2 flex flex-wrap gap-4 px-2 text-xs text-slate-500"><span>Each point shows revenue for that period.</span><span>CSV export downloads the underlying chart data.</span></div>
               </>
             )}
+          </div>
+        </section>
+
+        <section className="grid gap-5 xl:grid-cols-2" aria-label="Sales analysis bar charts">
+          <HorizontalBarChart
+            title="Revenue by Category"
+            subtitle={`Completed-order revenue · ${data?.range?.label || selectedPeriod.label}`}
+            items={categoryBars}
+            valueKey="revenue"
+            valueFormatter={money}
+            colorClass="bg-indigo-500"
+            emptyMessage="No category sales in this period."
+          />
+          <HorizontalBarChart
+            title="Top Products by Revenue"
+            subtitle={`Best-performing products · ${data?.range?.label || selectedPeriod.label}`}
+            items={productRevenueBars}
+            valueKey="revenue"
+            valueFormatter={money}
+            colorClass="bg-emerald-500"
+            emptyMessage="No product sales in this period."
+          />
+          <HorizontalBarChart
+            title="Order Status Distribution"
+            subtitle="Orders created in the selected period, including pending and cancelled orders."
+            items={orderStatusBars}
+            valueKey="count"
+            valueFormatter={(value) => value.toLocaleString("en-IN")}
+            colorClass="bg-sky-500"
+            emptyMessage="No orders found in this period."
+          />
+          <div className="flex flex-col justify-center rounded-[28px] border border-white/70 bg-white/90 p-5 shadow-[0_24px_70px_rgba(15,23,42,0.08)]">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-indigo-500">How to read the charts</p>
+            <h2 className="mt-2 text-xl font-bold text-slate-900">Sales and orders at a glance</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-600">Sales trend, category revenue and product revenue use completed orders only. Order status distribution includes every order status in the selected period. Inventory valuation below is a current stock snapshot.</p>
+            <p className="mt-4 rounded-2xl bg-slate-50 p-3 text-xs leading-5 text-slate-500">Bar lengths are relative to the largest value in each chart. Use the report library below to inspect and export the underlying rows.</p>
           </div>
         </section>
 
