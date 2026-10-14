@@ -5,7 +5,8 @@ import {
   MdMenu,
   MdNotifications,
   MdMessage,
-  MdAccountCircle
+  MdAccountCircle,
+  MdLogout
 } from "react-icons/md";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -14,9 +15,30 @@ export default function Navbar({ handleClick, className = "", user }) {
   const router = useRouter();
   // Search is kept in local state because the navbar only needs the current text.
   const [search, setSearch] = useState("");
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [logoutError, setLogoutError] = useState("");
 
   const displayName = user?.name || "Inventory User";
-  const displayEmail = user?.email || "Public workspace";
+  const displayEmail = user?.email || "Signed-in account";
+
+  async function handleLogout() {
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
+    setLogoutError("");
+    try {
+      const response = await fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error("Logout request failed");
+      router.replace("/login");
+      router.refresh();
+    } catch {
+      setLogoutError("Logout failed. Please try again.");
+    } finally {
+      setIsLoggingOut(false);
+    }
+  }
 
   function handleSearchSubmit(event) {
     event.preventDefault();
@@ -78,11 +100,19 @@ export default function Navbar({ handleClick, className = "", user }) {
             <MdArrowDropDown className="text-xl text-slate-400" />
           </div>
 
-          <div className="hidden rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-semibold text-emerald-700 md:block">
-            Public workspace
-          </div>
+          <button
+            type="button"
+            onClick={handleLogout}
+            disabled={isLoggingOut}
+            className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
+            aria-label="Log out"
+          >
+            <MdLogout size={18} />
+            <span>{isLoggingOut ? "Logging out…" : "Log out"}</span>
+          </button>
         </div>
       </nav>
+      {logoutError ? <div role="alert" className="border-b border-rose-200 bg-rose-50 px-4 py-2 text-right text-sm text-rose-700">{logoutError}</div> : null}
     </>
   );
 }
