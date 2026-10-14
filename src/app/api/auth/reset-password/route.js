@@ -1,4 +1,4 @@
-// Auth route that applies a new password from a reset token.
+// Auth route that resets a password using email OTP (legacy reset tokens remain valid until expiry).
 import { success, failure, normalizeError } from "@/app/lib/response";
 import { parseJsonBody, rateLimit, jsonError } from "@/app/lib/apiHelpers";
 import { resetPassword } from "@/app/services/authService";
@@ -6,7 +6,7 @@ import { resetPassword } from "@/app/services/authService";
 export async function POST(request) {
   try {
     const body = await parseJsonBody(request);
-    const limit = rateLimit(`reset:${String(body?.token || request.headers.get("x-forwarded-for") || "anon").toLowerCase()}`, {
+    const limit = rateLimit(`reset:${String(body?.email || request.headers.get("x-forwarded-for") || "anon").toLowerCase()}`, {
       limit: 8,
       windowMs: 10 * 60 * 1000,
     });
