@@ -105,9 +105,25 @@ async function syncBarcodes(userId, productId, barcodes = [], { autoGenerate = f
   return resolved;
 }
 
-async function assertBarcodePolicy(userId) {
+async function getBarcodePolicy(userId) {
   const settings = await getSettings(userId);
-  return settings?.inventory?.barcodeMode || "optional";
+  return {
+    mode: settings?.inventory?.barcodeMode || "optional",
+    autoGenerate: Boolean(settings?.inventory?.autoBarcodeGeneration),
+  };
+}
+
+function normalizedText(value) {
+  return String(value || "").trim().replace(/\\s+/g, " ").toLocaleLowerCase();
+}
+
+function matchesExistingProduct(product, payload, categoryName, sku) {
+  // Require the same identifying details before treating a repeated barcode as
+  // a stock addition. In particular, don't merge different SKUs or pack sizes.
+  return normalizedText(product.name) === normalizedText(payload.name)
+    && normalizedText(product.category) === normalizedText(categoryName)
+    && normalizedText(product.sku) === normalizedText(sku)
+    && Number(product.price) === Number(payload.price);
 }
 
 export async function listProducts(userId, { page = 1, limit = 10, search = "" } = {}) {
@@ -154,12 +170,66 @@ export async function createProduct(userId, input) {
   await dbConnect();
   await ensureProductIndexes();
   const payload = productSchema.parse({ ...input, userId });
-  await assertBarcodePolicy(userId, payload.barcodes || []);
+  const policy = await getBarcodePolicy(userId);
+  let barcodes = normalizeBarcodes(payload.barcodes || []);
+  const sku = payload.sku?.trim() || undefined;
+  const categoryName = payload.category || "Uncategorized";
+
+  if (policy.mode === "strict" && barcodes.length === 0 && !policy.autoGenerate && payload.stock > 0) {
+    throw new Error("A barcode is required while strict barcode mode is enabled");
+  }
+
+  // A product-level barcode identifies the product, not each physical unit.
+  // Generate an internal identifier when one wasn't supplied and stock exists.
+  if (barcodes.length === 0 && payload.stock > 0) {
+    barcodes = await generateUniqueBarcodes(userId, 1);
+  }
+
+  // Validate existing codes before creating a Product document. This prevents
+  // an invalid/duplicate barcode from leaving an orphan product behind.
+  const existingBarcodes = barcodes.length
+    ? await Barcode.find({ userId, code: { $in: barcodes.map((item) => item.code) } }).lean()
+    : [];
+  const existingProductIds = [...new Set(existingBarcodes.map((item) => String(item.productId)))];
+
+  if (existingProductIds.length > 0) {
+    if (existingProductIds.length !== 1) {
+      throw new Error("These barcodes belong to different products");
+    }
+
+    const existingProduct = await Product.findOne({
+      _id: existingProductIds[0],
+      userId,
+    }).lean();
+    if (!existingProduct || !matchesExistingProduct(existingProduct, payload, categoryName, sku)) {
+      const conflict = existingBarcodes[0];
+      throw new Error(`Barcode ${conflict.code} already belongs to a different product or variant`);
+    }
+
+    const product = await Product.findOneAndUpdate(
+      { _id: existingProduct._id, userId },
+      { $inc: { stock: payload.stock } },
+      { returnDocument: "after", runValidators: true }
+    );
+    if (!product) {
+      throw new Error("Product not found while updating stock");
+    }
+
+    const combinedBarcodes = normalizeBarcodes([
+      ...(existingProduct.barcodes || []),
+      ...barcodes,
+    ]);
+    const assigned = await syncBarcodes(userId, product._id, combinedBarcodes, {
+      stock: product.stock,
+    });
+    product.barcodes = assigned;
+    await product.save();
+    return product;
+  }
+
   const category = payload.categoryId
     ? null
     : await upsertCategoryFromName(userId, payload.category);
-  const sku = payload.sku?.trim() || undefined;
-
   const product = await Product.create({
     userId,
     categoryId: payload.categoryId || category?._id || null,
@@ -170,10 +240,10 @@ export async function createProduct(userId, input) {
     stock: payload.stock,
     ...(sku ? { sku } : {}),
     description: payload.description || "",
-    barcodes: payload.barcodes || [],
+    barcodes,
   });
 
-  const assigned = await syncBarcodes(userId, product._id, payload.barcodes || [], {
+  const assigned = await syncBarcodes(userId, product._id, barcodes, {
     stock: payload.stock,
   });
   product.barcodes = assigned;
@@ -194,7 +264,10 @@ export async function updateProduct(userId, id, input) {
   }
 
   const nextBarcodes = payload.barcodes || existing.barcodes || [];
-  await assertBarcodePolicy(userId, nextBarcodes);
+  const policy = await getBarcodePolicy(userId);
+  if (policy.mode === "strict" && nextBarcodes.length === 0 && !policy.autoGenerate) {
+    throw new Error("A barcode is required while strict barcode mode is enabled");
+  }
 
   const nextStock = payload.stock ?? existing.stock ?? 0;
   const existingAssigned = Array.isArray(existing.barcodes) ? existing.barcodes.length : 0;
