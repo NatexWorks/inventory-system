@@ -46,6 +46,25 @@ test.describe('Authentication', () => {
     await expect(page.getByRole('heading', { name: /Products List/i })).toBeVisible();
   });
 
+  test('shows maintenance screen instead of API server error details', async ({ page }) => {
+    await page.route('**/api/auth/me', async (route) => {
+      await route.fulfill({
+        status: 500,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: false,
+          message: 'Set OTP_SECRET or JWT_SECRET to a random secret',
+          errors: ['Internal database diagnostic'],
+        }),
+      });
+    });
+
+    await page.goto('/');
+    await expect(page.getByRole('heading', { name: /Site Under Maintenance/i })).toBeVisible();
+    await expect(page.getByText(/Set OTP_SECRET|Internal database diagnostic/i)).toHaveCount(0);
+    await expect(page.getByRole('button', { name: /Try again/i })).toBeVisible();
+  });
+
   test('shows validation and recovery flows', async ({ page }) => {
     const auth = new AuthPage(page);
     const users = getTestUsers();
