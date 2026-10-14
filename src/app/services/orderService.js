@@ -8,7 +8,7 @@ import Barcode from "../models/barcodeSchema";
 import Session from "../models/sessionSchema";
 import ReturnModel from "../models/returnSchema";
 import { ORDER_STATES, assertOrderTransition } from "../lib/stateMachine";
-import { buildMeta, sanitizeSearch } from "../lib/apiHelpers";
+import { buildMeta, sanitizeSearch, HttpError } from "../lib/apiHelpers";
 import { reserveBarcodeForOrder, releaseReservedBarcode, sellBarcode, returnBarcode } from "./barcodeService";
 
 function nextOrderNumber() {
@@ -332,44 +332,127 @@ export async function cancelOrder(userId, id, cancelledBy) {
 }
 
 export async function returnOrder(userId, originalOrderId, input = {}) {
+  await dbConnect();
   const session = await mongoose.startSession();
   try {
     let returnedOrder = null;
 
     await session.withTransaction(async () => {
       const originalOrder = await Order.findOne({ _id: originalOrderId, userId }).session(session);
-      if (!originalOrder) {
-        throw new Error("Original order not found");
-      }
-
+      if (!originalOrder) throw new HttpError("Original order not found", 404);
       if (originalOrder.status !== ORDER_STATES.COMPLETED) {
-        throw new Error("Only completed orders can be returned");
+        throw new HttpError("Only completed orders can be returned", 400);
       }
 
       const returnItems = input.items || originalOrder.items;
-      for (const item of returnItems) {
-        await Product.updateOne(
-          { _id: item.productId, userId },
-          { $inc: { stock: Number(item.quantity || 1) } },
-          { session }
-        );
-        if (item.barcode) {
-          await returnBarcode(userId, item.barcode, session);
+      if (!Array.isArray(returnItems) || returnItems.length === 0) {
+        throw new HttpError("Select at least one item to return", 400);
+      }
+
+      const priorReturns = await ReturnModel.find({
+        userId,
+        originalOrderId: originalOrder._id,
+        status: "COMPLETED",
+      }).session(session).lean();
+
+      const soldByProduct = new Map();
+      for (const item of originalOrder.items || []) {
+        const key = String(item.productId);
+        soldByProduct.set(key, (soldByProduct.get(key) || 0) + Number(item.quantity || 0));
+      }
+
+      const returnedByProduct = new Map();
+      const returnedUnitCodes = new Set();
+      for (const prior of priorReturns) {
+        for (const item of prior.items || []) {
+          const key = String(item.productId);
+          returnedByProduct.set(key, (returnedByProduct.get(key) || 0) + Number(item.quantity || 0));
+          if (item.barcode) returnedUnitCodes.add(String(item.barcode));
         }
       }
 
+      const requestedByProduct = new Map();
+      const requestedUnitCodes = new Set();
+      const normalizedItems = [];
+
+      for (const item of returnItems) {
+        const productId = String(item?.productId || "");
+        const quantity = Number(item?.quantity);
+        if (!productId || !Number.isInteger(quantity) || quantity < 1) {
+          throw new HttpError("Each returned item must have a valid product and positive whole-number quantity", 400);
+        }
+        if (!soldByProduct.has(productId)) {
+          throw new HttpError("A returned product was not part of the original order", 400);
+        }
+
+        const productQuery = Product.findOne({ _id: productId, userId }).select("name barcodeMode");
+        productQuery.session(session);
+        const product = await productQuery.lean();
+        if (!product) throw new HttpError("Returned product not found in this workspace", 404);
+
+        const barcode = String(item.barcode || "").trim();
+        const isUnitBarcode = product.barcodeMode === "UNIT";
+        let sourceItem;
+
+        if (isUnitBarcode) {
+          if (!barcode || quantity !== 1) {
+            throw new HttpError("Unit-barcode returns must specify the sold unit barcode and quantity 1", 400);
+          }
+          sourceItem = (originalOrder.items || []).find((line) =>
+            String(line.productId) === productId && String(line.barcode || "") === barcode
+          );
+          if (!sourceItem) throw new HttpError("This unit barcode was not sold in the original order", 400);
+          if (returnedUnitCodes.has(barcode) || requestedUnitCodes.has(barcode)) {
+            throw new HttpError("This unit has already been returned", 409);
+          }
+          requestedUnitCodes.add(barcode);
+        } else {
+          sourceItem = (originalOrder.items || []).find((line) => String(line.productId) === productId);
+          const alreadyReturned = returnedByProduct.get(productId) || 0;
+          const requestedSoFar = requestedByProduct.get(productId) || 0;
+          if (alreadyReturned + requestedSoFar + quantity > soldByProduct.get(productId)) {
+            throw new HttpError(`Return quantity exceeds the remaining sold quantity for ${product.name}`, 400);
+          }
+          requestedByProduct.set(productId, requestedSoFar + quantity);
+        }
+
+        if (!sourceItem) throw new HttpError("Could not match the return item to the original order", 400);
+        normalizedItems.push({
+          productId: sourceItem.productId,
+          barcodeId: isUnitBarcode ? (sourceItem.barcodeId || item.barcodeId || null) : null,
+          barcode: isUnitBarcode ? barcode : "",
+          quantity,
+          price: Number(sourceItem.price || 0),
+        });
+      }
+
+      // Touch the original order in the same transaction to serialize concurrent
+      // return attempts against the same order.
+      originalOrder.returnRevision = Number(originalOrder.returnRevision || 0) + 1;
+      await originalOrder.save({ session });
+
+      for (const item of normalizedItems) {
+        const productUpdate = await Product.updateOne(
+          { _id: item.productId, userId },
+          { $inc: { stock: item.quantity } },
+          { session }
+        );
+        if (!productUpdate.matchedCount) {
+          throw new HttpError("Returned product not found in this workspace", 404);
+        }
+        if (item.barcode) await returnBarcode(userId, item.barcode, session);
+      }
+
       returnedOrder = await ReturnModel.create(
-        [
-          {
-            userId,
-            items: returnItems,
-            returnNumber: `RET-${Date.now().toString().slice(-8)}-${crypto.randomUUID().slice(0, 6).toUpperCase()}`,
-            notes: input.notes || "Return processed",
-            originalOrderId: originalOrder._id,
-            processedBy: input.processedBy || null,
-            processedAt: new Date(),
-          },
-        ],
+        [{
+          userId,
+          items: normalizedItems,
+          returnNumber: `RET-${Date.now().toString().slice(-8)}-${crypto.randomUUID().slice(0, 6).toUpperCase()}`,
+          notes: input.notes || "Return processed",
+          originalOrderId: originalOrder._id,
+          processedBy: input.processedBy || null,
+          processedAt: new Date(),
+        }],
         { session }
       );
     });
