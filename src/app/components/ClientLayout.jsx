@@ -22,6 +22,7 @@ export default function ClientLayout({ children }) {
     || pathname.startsWith("/reset-password/");
   // Close the mobile drawer after route changes and support the Escape key.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Close the mobile drawer when browser navigation changes routes.
     setMobileOpen(false);
   }, [pathname]);
 
@@ -44,6 +45,7 @@ export default function ClientLayout({ children }) {
     }
 
     let active = true;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Reset status before validating the new protected-route session.
     setAuthStatus("checking");
     setAuthCheckError("");
 
