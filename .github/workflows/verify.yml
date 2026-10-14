@@ -1,0 +1,68 @@
+name: Verify app and OTP flows
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lint-and-build:
+    name: Lint and production build
+    runs-on: ubuntu-latest
+    env:
+      JWT_SECRET: ci-only-jwt-secret-do-not-use-in-production-123456789
+      OTP_SECRET: ci-only-otp-secret-do-not-use-in-production-123456789
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Run ESLint
+        run: npm run lint
+      - name: Build production app even when lint reports issues
+        if: always()
+        run: npm run build
+
+  otp-auth-tests:
+    name: OTP signup and password-reset tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      mongodb:
+        image: mongo:7
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.adminCommand({ ping: 1 }).ok' "
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      MONGODB_URI: mongodb://127.0.0.1:27017/inventoryDB
+      JWT_SECRET: ci-only-jwt-secret-do-not-use-in-production-123456789
+      OTP_SECRET: ci-only-otp-secret-do-not-use-in-production-123456789
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+      OTP_DEV_RETURN_CODE: "true"
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Install Chromium for Playwright
+        run: npx playwright install --with-deps chromium
+      - name: Run auth API and browser tests
+        run: npx playwright test --project=chromium tests/api/auth.api.spec.ts tests/auth/auth.spec.ts
