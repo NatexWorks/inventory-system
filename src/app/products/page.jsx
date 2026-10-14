@@ -132,6 +132,8 @@ export default function ProductsPage() {
   const [barcodeEditorError, setBarcodeEditorError] = useState("");
   const [barcodeEditorSaving, setBarcodeEditorSaving] = useState(false);
   const [lowStockThreshold, setLowStockThreshold] = useState(5);
+  const [pageSize, setPageSize] = useState(10);
+  const [tipsVisible, setTipsVisible] = useState(true);
 
   useEffect(() => {
     function handlePopState() {
@@ -143,6 +145,16 @@ export default function ProductsPage() {
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
   }, []);
+
+  useEffect(() => {
+    setTipsVisible(window.localStorage.getItem("inventory.products.tipsHidden") !== "true");
+  }, []);
+
+  function toggleTipsVisibility() {
+    const nextVisible = !tipsVisible;
+    setTipsVisible(nextVisible);
+    window.localStorage.setItem("inventory.products.tipsHidden", nextVisible ? "false" : "true");
+  }
 
   // Read the same low-stock threshold used by the dashboard.
   useEffect(() => {
@@ -164,7 +176,7 @@ export default function ProductsPage() {
       try {
         setLoading(true);
         setError("");
-        const data = await fetchProducts({ page, search });
+        const data = await fetchProducts({ page, search, limit: pageSize });
 
         if (!active) {
           return;
@@ -191,7 +203,7 @@ export default function ProductsPage() {
     return () => {
       active = false;
     };
-  }, [page, search]);
+  }, [page, search, pageSize]);
 
   const stats = useMemo(() => {
     // Derived metrics are computed from the current product list.
@@ -455,6 +467,15 @@ export default function ProductsPage() {
                 Reset
               </button>
 
+              <button
+                type="button"
+                onClick={toggleTipsVisibility}
+                aria-pressed={tipsVisible}
+                className="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-indigo-200 hover:bg-indigo-50"
+              >
+                {tipsVisible ? "Hide tips" : "Show tips"}
+              </button>
+
               <Link
                 href="/addProducts"
                 className="inline-flex items-center justify-center gap-2 rounded-2xl bg-linear-to-r from-indigo-600 to-violet-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-200 transition hover:scale-[1.01] hover:from-indigo-500 hover:to-violet-500"
@@ -472,6 +493,14 @@ export default function ProductsPage() {
           ))}
         </section>
 
+        {tipsVisible ? (
+          <section aria-label="Product tips" className="rounded-3xl border border-indigo-100 bg-indigo-50/80 px-5 py-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-indigo-600">Quick tips</p>
+            <h2 className="mt-1 text-base font-semibold text-slate-900">Keep your product catalogue accurate</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-600">Search by product name, SKU, or barcode. Keep cost price and selling price separate, and use stock status to spot items that may need replenishment.</p>
+          </section>
+        ) : null}
+
         {error ? (
           <div className="rounded-3xl border border-rose-200 bg-rose-50 px-5 py-4 text-sm text-rose-700">
             {error}
@@ -484,10 +513,17 @@ export default function ProductsPage() {
               <h2 className="text-lg font-semibold text-slate-900">All Products</h2>
               <p className="text-sm text-slate-500">Manage catalog entries and stock status.</p>
             </div>
-            <div className="hidden rounded-2xl bg-slate-50 px-3 py-2 text-sm text-slate-500 md:block">
-              {pagination.totalProducts > 0
-                ? `Showing ${visibleStart} to ${visibleEnd} of ${pagination.totalProducts} results`
-                : "No products found"}
+            <div className="flex flex-wrap items-center gap-3">
+              <label className="flex items-center gap-2 text-sm text-slate-600">
+                <span>Show</span>
+                <select aria-label="Products per page" value={pageSize} onChange={(event) => { setPageSize(Number(event.target.value)); setPage(1); }} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 outline-none focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100">
+                  <option value={10}>10</option><option value={20}>20</option><option value={50}>50</option><option value={100}>100</option>
+                </select>
+                <span>per page</span>
+              </label>
+              <div className="hidden rounded-2xl bg-slate-50 px-3 py-2 text-sm text-slate-500 md:block">
+                {pagination.totalProducts > 0 ? `Showing ${visibleStart} to ${visibleEnd} of ${pagination.totalProducts} results` : "No products found"}
+              </div>
             </div>
           </div>
 
