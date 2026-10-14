@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { getTestUsers, loadSeedData } from '../fixtures/testData';
+import { loadSeedData } from '../fixtures/testData';
 import { expectFailure, expectSuccess, withApiContext } from '../fixtures/api';
 
 test.describe('Auth API', () => {
@@ -10,33 +10,43 @@ test.describe('Auth API', () => {
     });
   });
 
-  test('supports login, forgot password, and reset flows', async () => {
-    const users = getTestUsers();
+  test('supports email OTP signup, login, and password reset', async () => {
+    const runId = loadSeedData().runId;
+    const email = `otp-flow-${runId}-${Date.now()}@example.com`;
+    const password = 'Password123!';
 
     await withApiContext(undefined, async (request) => {
+      const signupOtpResponse = await request.post('/api/auth/send-otp', {
+        data: { email, purpose: 'signup' },
+      });
+      const signupOtpPayload = await expectSuccess(signupOtpResponse, 200);
+      const signupOtp = String(signupOtpPayload.data.developmentOtp || '');
+      expect(signupOtp).toMatch(/^[0-9]{6}$/);
+
+      const signup = await request.post('/api/auth/signup', {
+        data: { name: 'OTP Flow Test', email, password, otp: signupOtp },
+      });
+      const signupPayload = await expectSuccess(signup, 201);
+      expect(signupPayload.data.user).toMatchObject({ email, role: 'owner' });
+
       const login = await request.post('/api/auth/login', {
-        data: { email: users.owner.email, password: users.owner.password },
+        data: { email, password },
       });
       const loginPayload = await expectSuccess(login, 200);
-      expect(loginPayload.data).toMatchObject({
-        user: {
-          email: users.owner.email,
-          role: 'owner',
-        },
-      });
+      expect(loginPayload.data.user.email).toBe(email);
 
       const forgot = await request.post('/api/auth/forgot-password', {
-        data: { email: users.owner.email },
+        data: { email },
       });
       const forgotPayload = await expectSuccess(forgot, 200);
       expect(forgotPayload.data.accepted).toBe(true);
-      const otp = String(forgotPayload.data.developmentOtp || '');
-      expect(otp).toMatch(/^[0-9]{6}$/);
+      const resetOtp = String(forgotPayload.data.developmentOtp || '');
+      expect(resetOtp).toMatch(/^[0-9]{6}$/);
 
       const reset = await request.post('/api/auth/reset-password', {
         data: {
-          email: users.owner.email,
-          otp,
+          email,
+          otp: resetOtp,
           password: 'Password456!',
           confirmPassword: 'Password456!',
         },
@@ -44,7 +54,7 @@ test.describe('Auth API', () => {
       await expectSuccess(reset, 200);
 
       const relogin = await request.post('/api/auth/login', {
-        data: { email: users.owner.email, password: 'Password456!' },
+        data: { email, password: 'Password456!' },
       });
       await expectSuccess(relogin, 200);
     });
