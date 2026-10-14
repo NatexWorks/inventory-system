@@ -6,11 +6,17 @@ import { resetPassword } from "@/app/services/authService";
 export async function POST(request) {
   try {
     const body = await parseJsonBody(request);
-    const limit = rateLimit(`reset:${String(body?.email || request.headers.get("x-forwarded-for") || "anon").toLowerCase()}`, {
+    const email = String(body?.email || "unknown").toLowerCase();
+    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+    const limit = rateLimit(`reset-email:${email}`, {
       limit: 8,
       windowMs: 10 * 60 * 1000,
     });
-    if (!limit.allowed) {
+    const ipLimit = rateLimit(`reset-ip:${ip}`, {
+      limit: 20,
+      windowMs: 10 * 60 * 1000,
+    });
+    if (!limit.allowed || !ipLimit.allowed) {
       return jsonError("Too many requests. Please try again later.", 429);
     }
 
