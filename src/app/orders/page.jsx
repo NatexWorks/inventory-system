@@ -5,6 +5,7 @@ import {
   MdChevronLeft,
   MdChevronRight,
   MdDelete,
+  MdEdit,
   MdLocalShipping,
   MdOutlineCancel,
   MdOutlineDoneAll,
@@ -91,6 +92,7 @@ export default function OrdersPage() {
   const [orders, setOrders] = useState([]);
   const [products, setProducts] = useState([]);
   const [cart, setCart] = useState(() => loadDraftCart());
+  const [editingOrderId, setEditingOrderId] = useState(null);
   const [barcode, setBarcode] = useState("");
   const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -123,8 +125,9 @@ export default function OrdersPage() {
   }, []);
 
   useEffect(() => {
+    if (editingOrderId) { window.localStorage.removeItem(DRAFT_KEY); return; }
     window.localStorage.setItem(DRAFT_KEY, JSON.stringify(cart));
-  }, [cart]);
+  }, [cart, editingOrderId]);
 
   // Load the latest order list when the page mounts.
   useEffect(() => {
@@ -349,48 +352,36 @@ export default function OrdersPage() {
   }
 
   async function handleCheckout() {
-    // Save the cart as a pending order so approval can happen later.
-    if (!cart.length) {
-      setDraftMessage("Add at least one product before checkout.");
-      return;
-    }
-
+    const isEditing = Boolean(editingOrderId);
+    if (!cart.length) { setDraftMessage("Add at least one product before checkout."); return; }
     try {
+      const items = cart.map((item) => ({
+        productId: item.productId, barcodeId: item.barcodeId || null, barcode: item.barcode || "",
+        name: item.name, quantity: item.quantity, price: item.price, lineTotal: item.lineTotal,
+      }));
       const subtotal = cart.reduce((sum, item) => sum + Number(item.lineTotal || 0), 0);
-      const taxRate = Number(settings?.billing?.taxPercentage || 0);
-      const taxAmount = subtotal * (taxRate / 100);
-      const response = await fetch("/api/orders", {
-        method: "POST",
+      const taxAmount = subtotal * (Number(settings?.billing?.taxPercentage || 0) / 100);
+      const response = await fetch(isEditing ? `/api/orders/${editingOrderId}` : "/api/orders", {
+        method: isEditing ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          customerName: "Walk-in Customer",
-          items: cart.map((item) => ({
-            productId: item.productId,
-            barcodeId: item.barcodeId || null,
-            barcode: item.barcode || "",
-            name: item.name,
-            quantity: item.quantity,
-            price: item.price,
-            lineTotal: item.lineTotal,
-          })),
-          subtotal,
-          taxAmount,
-          totalAmount: subtotal + taxAmount,
-          status: "PENDING_APPROVAL",
+        body: JSON.stringify(isEditing ? { items } : {
+          customerName: "Walk-in Customer", items, subtotal, taxAmount,
+          totalAmount: subtotal + taxAmount, status: "PENDING_APPROVAL",
         }),
       });
       const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data?.message || "Checkout failed");
-      }
-
+      if (!response.ok) throw new Error(data?.message || (isEditing ? "Order update failed" : "Checkout failed"));
+      const savedOrder = data?.data?.order;
       setCart([]);
+      setEditingOrderId(null);
       window.localStorage.removeItem(DRAFT_KEY);
-      setDraftMessage(`Order ${data?.data?.order?.orderNumber || "saved"} is waiting for owner approval.`);
+      setDraftMessage(isEditing
+        ? `Order ${savedOrder?.orderNumber || "updated"} saved and remains pending approval.`
+        : `Order ${savedOrder?.orderNumber || "saved"} is waiting for owner approval.`);
       await refreshOrders();
       await refreshProducts();
     } catch (err) {
-      setDraftMessage(err.message || "Checkout failed");
+      setDraftMessage(err.message || "Unable to save order.");
     }
   }
 
@@ -429,6 +420,39 @@ export default function OrdersPage() {
 
   function removeFromCart(itemKey) {
     setCart((current) => current.filter((item) => getCartItemKey(item) !== itemKey));
+  }
+
+  async function handleEditPendingOrder(order) {
+    if (!["DRAFT", "PENDING_APPROVAL"].includes(order?.status)) return;
+    if (cart.length && !window.confirm("Replace the current draft cart with this order?")) return;
+    try {
+      setActionMessage("");
+      const loadedProducts = [...products];
+      for (const item of order.items || []) {
+        const productId = String(item.productId?._id || item.productId || "");
+        if (!productId) throw new Error("An order item is missing its product reference.");
+        if (loadedProducts.some((product) => String(product._id) === productId)) continue;
+        const response = await fetch(`/api/product/${productId}`, { cache: "no-store" });
+        const payload = await response.json();
+        if (!response.ok || !payload?.data?.product) throw new Error(`Product ${item.name || productId} could not be loaded.`);
+        loadedProducts.push(payload.data.product);
+      }
+      const nextCart = (order.items || []).map((item) => {
+        const productId = String(item.productId?._id || item.productId || "");
+        const product = loadedProducts.find((candidate) => String(candidate._id) === productId);
+        const quantity = Math.max(1, Number(item.quantity || 1));
+        const price = Number(product?.price ?? item.price ?? 0);
+        return { productId, name: product?.name || item.name, price, stock: Number(product?.stock || 0), quantity, lineTotal: price * quantity, barcode: item.barcode || "", barcodeId: item.barcodeId || null };
+      });
+      setProducts(loadedProducts);
+      setEditingOrderId(String(order._id));
+      setCart(nextCart);
+      window.localStorage.removeItem(DRAFT_KEY);
+      setDraftMessage(`Editing ${order.orderNumber}. Save changes to keep it pending approval.`);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } catch (err) {
+      setActionMessage(err.message || "Could not open this order for editing.");
+    }
   }
 
   async function handleApprove(orderId) {
@@ -702,11 +726,12 @@ export default function OrdersPage() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <MdShoppingCart className="text-lg text-indigo-600" />
-                    <h3 className="font-semibold text-slate-900">Draft Cart</h3>
+                    <h3 className="font-semibold text-slate-900">{editingOrderId ? "Edit Pending Order" : "Draft Cart"}</h3>
                   </div>
                   <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-500">{cart.length} items</span>
                 </div>
 
+                {editingOrderId ? <p role="status" className="mt-3 rounded-2xl bg-indigo-50 p-3 text-xs text-indigo-700">Editing order {orders.find((order) => String(order._id) === String(editingOrderId))?.orderNumber || ""}. Stock changes only when the order is approved.</p> : null}
                 <div className="mt-4 space-y-3">
                   {cart.length === 0 ? (
                     <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-4 text-sm text-slate-500">
@@ -786,17 +811,18 @@ export default function OrdersPage() {
                     onClick={handleCheckout}
                     className="flex-1 rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-200"
                   >
-                    Create Pending Bill
+                    {editingOrderId ? "Save Order Changes" : "Create Pending Bill"}
                   </button>
                   <button
                     onClick={() => {
                       setCart([]);
-                      setDraftMessage("Draft cart cleared");
+                      setDraftMessage(editingOrderId ? "Pending order edit cancelled." : "Draft cart cleared");
+                      setEditingOrderId(null);
                       window.localStorage.removeItem(DRAFT_KEY);
                     }}
                     className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700"
                   >
-                    Clear
+                    {editingOrderId ? "Cancel Edit" : "Clear"}
                   </button>
                 </div>
               </aside>
@@ -878,6 +904,7 @@ export default function OrdersPage() {
                             <StatusBadge status={order.status} />
                             {order.status === "PENDING_APPROVAL" || order.status === "DRAFT" ? (
                               <>
+                                <button onClick={() => handleEditPendingOrder(order)} className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700"><MdEdit className="mr-1 inline" />Edit</button>
                                 <button onClick={() => handleApprove(order._id)} className="rounded-full bg-emerald-600 px-3 py-1 text-xs font-semibold text-white">Approve</button>
                                 <button
                                   onClick={() => handleSoftDelete(order._id)}
@@ -927,7 +954,8 @@ export default function OrdersPage() {
                       <button type="button" onClick={() => printInvoice(order)} className="mt-4 w-full rounded-2xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-sm font-semibold text-indigo-700">Print invoice</button>
                     ) : null}
                     {order.status === "PENDING_APPROVAL" || order.status === "DRAFT" ? (
-                      <div className="mt-4 flex gap-2">
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        <button onClick={() => handleEditPendingOrder(order)} className="rounded-2xl bg-indigo-50 px-3 py-2 text-sm font-semibold text-indigo-700"><MdEdit className="mr-1 inline" />Edit</button>
                         <button onClick={() => handleApprove(order._id)} className="flex-1 rounded-2xl bg-emerald-600 px-3 py-2 text-sm font-semibold text-white">Approve</button>
                         <button
                           onClick={() => handleSoftDelete(order._id)}
