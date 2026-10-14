@@ -7,7 +7,6 @@ import { consumeEmailOtp, sendEmailOtp } from "./otpService";
 import MagicLinkRequest from "../models/magicLinkRequestSchema";
 import {
   authLoginSchema,
-  authSignupSchema,
   signupWithOtpSchema,
   otpResetPasswordSchema,
   forgotPasswordSchema,
