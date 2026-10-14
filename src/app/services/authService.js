@@ -188,7 +188,7 @@ export async function resetPassword(input) {
     resetRecord.usedAt = new Date();
     await resetRecord.save();
 
-    return { user: user.toObject() };
+    return { ok: true };
   }
 
   const payload = otpResetPasswordSchema.parse(input);
@@ -211,7 +211,7 @@ export async function resetPassword(input) {
     { $set: { usedAt: new Date() } }
   );
 
-  return { user: user.toObject() };
+  return { ok: true };
 }
 
 export async function getUserById(userId) {
