@@ -33,7 +33,7 @@ test.describe('Authentication', () => {
 
   test('redirects unauthenticated visitors to login and remembers the requested page', async ({ page }) => {
     await page.goto('/products');
-    await expect(page).toHaveURL(/\\/login\\?next=/);
+    await expect(page).toHaveURL(/\/login\?next=/);
   });
 
   test('opens protected pages after logging in', async ({ page }) => {
