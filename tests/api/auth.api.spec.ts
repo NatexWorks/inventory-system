@@ -27,7 +27,7 @@ test.describe('Auth API', () => {
         data: { name: 'OTP Flow Test', email, password, otp: signupOtp },
       });
       const signupPayload = await expectSuccess(signup, 201);
-      expect(signupPayload.data.user).toMatchObject({ email, role: 'owner' });
+      expect(signupPayload.data.user).toMatchObject({ email: email.toLowerCase(), role: 'owner' });
 
       const login = await request.post('/api/auth/login', {
         data: { email, password },
