@@ -13,7 +13,7 @@ export const authSignupSchema = z.object({
 
 // Public signup and password recovery require a six-digit emailed OTP.
 export const signupWithOtpSchema = authSignupSchema.extend({
-  otp: z.string().trim().regex(/^\\d{6}$/, "Enter the six-digit email code"),
+  otp: z.string().trim().regex(/^[0-9]{6}$/, "Enter the six-digit email code"),
 });
 
 export const sendOtpSchema = z.object({
@@ -48,7 +48,7 @@ export const resetPasswordSchema = z.object({
 
 export const otpResetPasswordSchema = z.object({
   email: z.string().trim().email(),
-  otp: z.string().trim().regex(/^\\d{6}$/, "Enter the six-digit email code"),
+  otp: z.string().trim().regex(/^[0-9]{6}$/, "Enter the six-digit email code"),
   password: z.string().min(8).max(128),
   confirmPassword: z.string().min(8).max(128),
 }).refine((value) => value.password === value.confirmPassword, {
