@@ -209,7 +209,7 @@ export async function requestPasswordReset(input) {
   return {
     ok: true,
     resetLink,
-  };;
+  };
 }
 
 export async function resetPassword(input) {
