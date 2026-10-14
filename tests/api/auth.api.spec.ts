@@ -63,6 +63,24 @@ test.describe('Auth API', () => {
     });
   });
 
+  test('does not allow public signup to assign the staff role', async () => {
+    const runId = loadSeedData().runId;
+
+    await withApiContext(undefined, async (request) => {
+      const response = await request.post('/api/auth/signup', {
+        data: {
+          name: 'Role Boundary Test',
+          email: `role-boundary-${runId}-${Date.now()}@example.com`,
+          password: 'Password123!',
+          role: 'staff',
+        },
+      });
+
+      const payload = await expectSuccess(response, 201);
+      expect(payload.data.user.role).toBe('owner');
+    });
+  });
+
   test('reports duplicate signup attempts', async () => {
     const seed = loadSeedData();
 
