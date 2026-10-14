@@ -42,7 +42,7 @@ export default function AuthForm({ mode = "login", redirectPath = "/" }) {
 
   async function handleSendOtp() {
     const email = form.email.trim();
-    if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)) {
+    if (email.split("@").length !== 2 || !email.split("@")[1].includes(".") || email.includes(" ")) {
       setError("Enter a valid email address first.");
       return;
     }
