@@ -861,7 +861,8 @@ export default function OrdersPage() {
                       <th className="px-5 py-4 font-semibold">Customer</th>
                       <th className="px-5 py-4 font-semibold">Date</th>
                       <th className="px-5 py-4 font-semibold">Amount</th>
-                      <th className="px-5 py-4 font-semibold">Status</th>\n                      <th className="px-5 py-4 font-semibold">Invoice</th>
+                      <th className="px-5 py-4 font-semibold">Status</th>
+                      <th className="px-5 py-4 font-semibold">Invoice</th>
                     </tr>
                   </thead>
                   <tbody>
