@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Sidebar from "./Sidebar";
 import Navbar from "./Navbar";
 
@@ -10,8 +10,11 @@ export default function ClientLayout({ children }) {
   // Keep desktop collapse state independent from the mobile drawer.
   const [open, setOpen] = useState(true);
   const [mobileOpen, setMobileOpen] = useState(false);
-  // `user` is fetched from the workspace endpoint and passed to the chrome UI.
+  // Resolve the signed-in user before rendering any protected workspace screen.
   const [user, setUser] = useState(null);
+  const [authStatus, setAuthStatus] = useState("checking");
+  const [authCheckError, setAuthCheckError] = useState("");
+  const router = useRouter();
 
   // Auth routes render without the app shell so login pages stay clean.
   const isAuthRoute = ["/login", "/signup", "/forgot-password", "/reset-password"].includes(pathname)
@@ -37,10 +40,12 @@ export default function ClientLayout({ children }) {
 
   useEffect(() => {
     if (isAuthRoute) {
-      return;
+      return undefined;
     }
 
     let active = true;
+    setAuthStatus("checking");
+    setAuthCheckError("");
 
     async function loadUser() {
       try {
@@ -49,14 +54,34 @@ export default function ClientLayout({ children }) {
           cache: "no-store",
         });
 
-        if (response.ok) {
-          const payload = await response.json();
-          if (active) {
-            setUser(payload?.data?.user || null);
-          }
+        if (response.status === 401 || response.status === 403) {
+          if (!active) return;
+          setUser(null);
+          setAuthStatus("unauthenticated");
+          const requestedPath = `${window.location.pathname}${window.location.search}`;
+          router.replace(`/login?next=${encodeURIComponent(requestedPath)}`);
+          return;
+        }
+
+        if (!response.ok) {
+          throw new Error("Unable to verify your session.");
+        }
+
+        const payload = await response.json();
+        const currentUser = payload?.data?.user;
+        if (!currentUser) {
+          throw new Error("The session response did not contain a user.");
+        }
+
+        if (active) {
+          setUser(currentUser);
+          setAuthStatus("authenticated");
         }
       } catch {
-        // The app now works without login, so we keep rendering even if the profile fetch fails.
+        if (active) {
+          setAuthStatus("error");
+          setAuthCheckError("We couldn't verify your session. Check your connection and retry.");
+        }
       }
     }
 
@@ -65,10 +90,35 @@ export default function ClientLayout({ children }) {
     return () => {
       active = false;
     };
-  }, [isAuthRoute]);
+  }, [isAuthRoute, router]);
 
   if (isAuthRoute) {
     return <>{children}</>;
+  }
+
+  if (authStatus !== "authenticated") {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-50 px-6 text-center">
+        {authStatus === "error" ? (
+          <div className="max-w-md rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
+            <h1 className="text-lg font-semibold text-slate-900">Session check failed</h1>
+            <p className="mt-2 text-sm text-slate-600">{authCheckError}</p>
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="mt-5 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-500"
+            >
+              Retry
+            </button>
+          </div>
+        ) : (
+          <div role="status" aria-live="polite" className="flex flex-col items-center gap-3 text-sm font-medium text-slate-600">
+            <span className="h-9 w-9 animate-spin rounded-full border-4 border-indigo-100 border-t-indigo-600" />
+            Verifying your session…
+          </div>
+        )}
+      </div>
+    );
   }
 
   return (
