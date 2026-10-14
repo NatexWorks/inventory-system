@@ -351,6 +351,14 @@ export default function DashboardClient() {
         icon: FaDollarSign,
         accent: "from-emerald-500/15 to-emerald-500/5 text-emerald-600",
       },
+      {
+        title: "Inventory Value",
+        value: money(summary?.inventoryValue || 0),
+        change: Number(summary?.inventoryValue || 0) ? "+ live" : "0",
+        trend: "stock at cost price",
+        icon: FaLayerGroup,
+        accent: "from-violet-500/15 to-violet-500/5 text-violet-600",
+      },
     ];
   }, [summary]);
 
@@ -419,7 +427,7 @@ export default function DashboardClient() {
         </div>
       </section>
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         {metricCards.map((metric) => (
           <MetricCard key={metric.title} {...metric} />
         ))}
@@ -477,10 +485,18 @@ export default function DashboardClient() {
 
         <div className="rounded-3xl border border-slate-200/80 bg-white p-5 shadow-[0_10px_30px_rgba(15,23,42,0.05)]">
           <h3 className="wrap-safe text-lg font-semibold leading-tight text-slate-900">Low Stock Alert</h3>
-          <p className="wrap-safe mt-1 text-sm text-slate-500">Items that need restocking before the next rush.</p>
+          <p className="wrap-safe mt-1 text-sm text-slate-500">
+            {summary?.lowStockAlertsEnabled === false
+              ? "Low-stock alerts are disabled in Settings."
+              : `Items at or below your threshold of ${summary?.lowStockThreshold ?? 5} units.`}
+          </p>
 
           <div className="mt-5 space-y-3">
-            {lowStockItems.length === 0 ? (
+            {summary?.lowStockAlertsEnabled === false ? (
+              <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
+                Turn on Low Stock Alerts in Settings to show these alerts.
+              </div>
+            ) : lowStockItems.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
                 No low stock items right now.
               </div>
