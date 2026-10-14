@@ -21,8 +21,10 @@ Set the sender address to one the SMTP provider permits. Do not prefix the secre
 - Codes are six digits, expire after 10 minutes, and can be consumed only once.
 - A code is stored as an HMAC hash, not as plaintext.
 - Incorrect guesses are limited to five attempts.
-- Resending is throttled to one request per 60 seconds and five requests per 15-minute window per email and purpose.
-- Password-reset requests use a generic response to avoid revealing whether an account exists.
+- Resending is throttled to one request per 60 seconds and a maximum of five OTP sends per 15-minute window per email and purpose.
+- The forgot-password endpoint also permits at most five requests per email in a 10-minute window and 15 per IP in that window.
+- If an active account exists, forgot-password emails a reset code and opens the reset form. If no account exists, the user is redirected to signup with the email prefilled.
+- This account-aware experience reveals whether an email is registered; use a generic response instead if preventing account enumeration is more important than directing new users to signup.
 - Legacy password reset links already issued remain valid until their existing expiration.
 
 ## Local automated tests
