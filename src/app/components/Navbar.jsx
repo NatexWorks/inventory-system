@@ -105,7 +105,7 @@ export default function Navbar({ handleClick, className = "", user }) {
             onClick={handleLogout}
             disabled={isLoggingOut}
             className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
-            aria-label="Log out"
+            aria-label="Logout"
           >
             <MdLogout size={18} />
             <span>{isLoggingOut ? "Logging out…" : "Log out"}</span>
