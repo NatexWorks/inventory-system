@@ -22,6 +22,9 @@ export default function AuthForm({ mode = "login", redirectPath = "/" }) {
     password: "",
   });
   const [loading, setLoading] = useState(false);
+  const [otp, setOtp] = useState("");
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpLoading, setOtpLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
@@ -29,6 +32,47 @@ export default function AuthForm({ mode = "login", redirectPath = "/" }) {
   function updateField(event) {
     const { name, value } = event.target;
     setForm((current) => ({ ...current, [name]: value }));
+    if (name === "email") {
+      setOtpSent(false);
+      setOtp("");
+      setMessage("");
+      setError("");
+    }
+  }
+
+  async function handleSendOtp() {
+    const email = form.email.trim();
+    if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)) {
+      setError("Enter a valid email address first.");
+      return;
+    }
+
+    setOtpLoading(true);
+    setError("");
+    setMessage("");
+
+    try {
+      const response = await fetch("/api/auth/send-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, purpose: "signup" }),
+      });
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload?.message || "Unable to send verification code");
+      }
+
+      setOtpSent(true);
+      setMessage(
+        payload?.data?.developmentOtp
+          ? `Verification code sent. Development OTP: ${payload.data.developmentOtp}`
+          : payload?.message || "If this email can be registered, a verification code has been sent."
+      );
+    } catch (err) {
+      setError(err.message || "Unable to send verification code");
+    } finally {
+      setOtpLoading(false);
+    }
   }
 
   // Handles submit, calls the API, and then redirects when auth succeeds.
@@ -48,6 +92,7 @@ export default function AuthForm({ mode = "login", redirectPath = "/" }) {
             name: form.name,
             email: form.email,
             password: form.password,
+            otp,
           }),
         });
 
@@ -103,7 +148,7 @@ export default function AuthForm({ mode = "login", redirectPath = "/" }) {
             {[
               ["Live data", "Every screen pulls from the backend"],
               ["Protected", "Login is required before app access"],
-              ["Fast flow", "Signup creates your workspace instantly"],
+              ["Email verified", "A code verifies email before account creation"],
             ].map(([title, desc]) => (
               <div key={title} className="rounded-3xl border border-white/10 bg-white/10 p-4">
                 <p className="text-sm font-semibold">{title}</p>
@@ -160,6 +205,38 @@ export default function AuthForm({ mode = "login", redirectPath = "/" }) {
               </div>
             </label>
 
+            {isSignup ? (
+              <div className="space-y-3">
+                <button
+                  type="button"
+                  onClick={handleSendOtp}
+                  disabled={otpLoading || !form.email.trim()}
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-100 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {otpLoading ? "Sending code..." : otpSent ? "Resend verification code" : "Send verification code"}
+                </button>
+                {otpSent ? (
+                  <label className="block">
+                    <span className="mb-2 block text-sm font-medium text-slate-700">Email verification code</span>
+                    <input
+                      name="otp"
+                      type="text"
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
+                      pattern="[0-9]{6}"
+                      maxLength={6}
+                      value={otp}
+                      onChange={(event) => setOtp(event.target.value.replace(/[^0-9]/g, "").slice(0, 6))}
+                      className={baseField}
+                      placeholder="Enter 6-digit code"
+                      required
+                    />
+                    <span className="mt-1 block text-xs text-slate-500">The code expires after 10 minutes.</span>
+                  </label>
+                ) : null}
+              </div>
+            ) : null}
+
             <label className="block">
               <span className="mb-2 block text-sm font-medium text-slate-700">Password</span>
               <div className="relative">
@@ -186,10 +263,10 @@ export default function AuthForm({ mode = "login", redirectPath = "/" }) {
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || (isSignup && (!otpSent || otp.length !== 6))}
               className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-linear-to-r from-indigo-600 to-blue-600 px-5 py-3.5 text-sm font-semibold text-white shadow-lg shadow-indigo-200 transition hover:from-indigo-500 hover:to-blue-500 disabled:cursor-not-allowed disabled:opacity-70"
             >
-              {loading ? "Please wait..." : isSignup ? "Create account" : "Login"}
+              {loading ? "Please wait..." : isSignup ? "Verify code & create account" : "Login"}
               <MdArrowForward className="text-lg" />
             </button>
           </form>
