@@ -2,8 +2,7 @@
 import { failure, normalizeError, success } from "@/app/lib/response";
 import { assertAuth, parseJsonBody } from "@/app/lib/apiHelpers";
 import { cancelSession, completeSession, getSessionBySessionId, joinSession } from "@/app/services/sessionService";
-import dbConnect from "@/app/lib/db";
-import Session from "@/app/models/sessionSchema";
+
 
 export async function GET(request, { params }) {
   try {
@@ -30,18 +29,16 @@ export async function PATCH(request, { params }) {
 
     let session;
     if (body.action === "join") {
-      session = await joinSession(auth.userId, id, body.deviceId);
+      if (typeof body.deviceId !== "string" || !body.deviceId.trim()) {
+        return failure("A device ID is required to join a session", null, 400);
+      }
+      session = await joinSession(auth.userId, id, body.deviceId.trim());
     } else if (body.action === "complete") {
       session = await completeSession(auth.userId, id);
     } else if (body.action === "cancel") {
       session = await cancelSession(auth.userId, id);
     } else {
-      await dbConnect();
-      session = await Session.findOneAndUpdate(
-        { sessionId: id, userId: auth.userId },
-        { $set: body },
-        { returnDocument: "after" }
-      );
+      return failure("Unsupported session action", null, 400);
     }
 
     if (!session) {
