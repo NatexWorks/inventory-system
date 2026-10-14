@@ -30,32 +30,21 @@ function calculateAmounts(items, taxPercentage = 0, discountAmount = 0) {
 
 async function resolveBarcodeIdentity(userId, item, session = null) {
   const code = String(item?.barcode || "").trim();
-  if (!code) {
-    return {
-      productId: item.productId,
-      barcodeId: item.barcodeId || null,
-      barcode: "",
-    };
-  }
-
-  const query = Barcode.findOne({ userId, code });
-  if (session) {
-    query.session(session);
-  }
-
-  const barcode = await query.lean();
-  if (!barcode) {
-    return {
-      productId: item.productId,
-      barcodeId: item.barcodeId || null,
-      barcode: code,
-    };
-  }
+  const barcodeQuery = code ? Barcode.findOne({ userId, code }) : null;
+  if (barcodeQuery && session) barcodeQuery.session(session);
+  const barcode = barcodeQuery ? await barcodeQuery.lean() : null;
+  const productId = barcode?.productId || item.productId;
+  const productQuery = Product.findOne({ _id: productId, userId }).select("barcodeMode");
+  if (session) productQuery.session(session);
+  const product = productId ? await productQuery.lean() : null;
 
   return {
-    productId: barcode.productId || item.productId,
-    barcodeId: barcode._id || item.barcodeId || null,
-    barcode: barcode.code || code,
+    productId,
+    barcodeId: barcode?._id || item.barcodeId || null,
+    barcode: code ? (barcode?.code || code) : "",
+    // PRODUCT barcodes identify a reusable product type; UNIT barcodes are
+    // unique physical units and must retain the reserve/sell lifecycle.
+    barcodeMode: product?.barcodeMode || "PRODUCT",
   };
 }
 
@@ -100,6 +89,7 @@ export async function createOrder(userId, input, settings = {}) {
 
     await session.withTransaction(async () => {
       const items = [];
+      const unitBarcodesToReserve = [];
       for (const item of input.items || []) {
         const identity = await resolveBarcodeIdentity(userId, item, session);
         items.push({
@@ -111,6 +101,9 @@ export async function createOrder(userId, input, settings = {}) {
           price: Number(item.price || 0),
           lineTotal: Number(item.lineTotal || Number(item.price || 0) * Number(item.quantity || 1)),
         });
+        if (identity.barcode && identity.barcodeMode === "UNIT") {
+          unitBarcodesToReserve.push(identity.barcode);
+        }
       }
 
       const amounts = calculateAmounts(items, settings?.billing?.taxPercentage || 0, input.discountAmount || 0);
@@ -134,10 +127,8 @@ export async function createOrder(userId, input, settings = {}) {
         { session }
       );
 
-      for (const item of order.items || []) {
-        if (item.barcode) {
-          await reserveBarcodeForOrder(userId, item.barcode, order._id, session);
-        }
+      for (const code of new Set(unitBarcodesToReserve)) {
+        await reserveBarcodeForOrder(userId, code, order._id, session);
       }
 
       createdOrder = order;
@@ -193,7 +184,7 @@ export async function approveOrder(userId, id, approvedBy) {
           throw new Error(`Insufficient stock for ${item.name || item.productId}`);
         }
 
-        if (resolvedIdentity.barcode) {
+        if (resolvedIdentity.barcode && resolvedIdentity.barcodeMode === "UNIT") {
           await sellBarcode(userId, resolvedIdentity.barcode, order._id, session);
         }
       }
