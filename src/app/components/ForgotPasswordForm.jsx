@@ -33,11 +33,17 @@ export default function ForgotPasswordForm() {
         throw new Error(payload?.message || "Unable to request a reset code");
       }
 
+      if (payload?.data?.accountExists === false) {
+        router.replace(
+          `/signup?email=${encodeURIComponent(email.trim())}&notice=account-not-found`
+        );
+        return;
+      }
+
       // Test OTPs are only exposed when explicitly enabled in local, non-production runs.
       if (payload?.data?.developmentOtp) {
         sessionStorage.setItem("inventory-reset-development-otp", payload.data.developmentOtp);
       }
-      setMessage(payload?.message || "If the account exists, a reset code has been sent.");
       router.push(`/reset-password?email=${encodeURIComponent(email.trim())}`);
     } catch (err) {
       setError(err.message || "Something went wrong");
@@ -55,7 +61,7 @@ export default function ForgotPasswordForm() {
           </div>
           <h1 className="mt-6 text-3xl font-bold leading-tight tracking-tight sm:text-4xl">Forgot password</h1>
           <p className="mt-4 max-w-md text-sm leading-6 text-white/75">
-            Enter your account email. We will send a one-time code to verify the reset request.
+            Enter your email. If an account is registered, we will send a one-time password-reset code. Otherwise, we will take you to create an account.
           </p>
           <div className="mt-8 rounded-3xl border border-white/10 bg-white/10 p-4 text-sm text-white/80">
             The code expires in 10 minutes and works only once.
@@ -65,7 +71,7 @@ export default function ForgotPasswordForm() {
         <section className="rounded-[28px] bg-white p-8 shadow-[0_16px_35px_rgba(15,23,42,0.12)]">
           <p className="text-xs font-semibold uppercase tracking-[0.28em] text-indigo-500">Account Recovery</p>
           <h2 className="mt-3 text-2xl font-bold leading-tight text-slate-900 sm:text-3xl">Get a reset code</h2>
-          <p className="mt-2 text-sm text-slate-500">For privacy, the same confirmation is shown whether or not the email belongs to an active account.</p>
+          <p className="mt-2 text-sm text-slate-500">Registered already? We will send a code. New here? We will take you to create an account with this email filled in.</p>
 
           <form onSubmit={handleSubmit} className="mt-8 space-y-4">
             <label className="block">
