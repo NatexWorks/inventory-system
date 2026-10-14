@@ -23,13 +23,13 @@ test.describe('Orders API', () => {
               productId: product.id,
               name: product.name,
               quantity: 1,
-              price: product.price,
-              lineTotal: product.price,
+              price: 0,
+              lineTotal: 0,
             },
           ],
-          subtotal: product.price,
+          subtotal: 0,
           taxAmount: 0,
-          totalAmount: product.price,
+          totalAmount: 0,
           status: 'PENDING_APPROVAL',
         },
       });
@@ -37,6 +37,9 @@ test.describe('Orders API', () => {
       const created = await expectSuccess(create, 200);
       const orderId = created.data.order._id as string;
       expect(created.data.order.status).toBe('PENDING_APPROVAL');
+      expect(created.data.order.items[0].price).toBe(product.price);
+      expect(created.data.order.subtotal).toBe(product.price);
+      expect(created.data.order.totalAmount).toBe(product.price);
 
       const getOrder = await request.get(`/api/orders/${orderId}`);
       const fetched = await expectSuccess(getOrder, 200);
@@ -61,6 +64,15 @@ test.describe('Orders API', () => {
       });
       const returned = await expectSuccess(completedReturn, 201);
       expect(returned.data.returned.originalOrderId).toBe(orderId);
+      
+      const duplicateReturn = await request.post('/api/returns', {
+        data: {
+          originalOrderId: orderId,
+          notes: 'Attempt to return the same item twice',
+          items: [{ productId: product.id, quantity: 1, price: product.price }],
+        },
+      });
+      await expectFailure(duplicateReturn, 400);
 
       const cancel = await request.post(`/api/orders/${seed.orders.pending.id}/cancel`);
       const cancelled = await expectSuccess(cancel, 200);
