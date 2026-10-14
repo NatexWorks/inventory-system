@@ -1,8 +1,9 @@
 "use client";
 
 // Small API wrapper for products so page components do not repeat fetch logic.
-export async function fetchProducts({ page = 1, search = "" } = {}) {
-  const res = await fetch(`/api/product?page=${page}&search=${search}`, {
+export async function fetchProducts({ page = 1, limit = 10, search = "" } = {}) {
+  const query = new URLSearchParams({ page: String(page), limit: String(limit), search: String(search || "") });
+  const res = await fetch(`/api/product?${query.toString()}`, {
     credentials: "include",
     cache: "no-store",
   });
