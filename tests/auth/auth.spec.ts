@@ -25,10 +25,15 @@ test.describe('Authentication', () => {
     const email = `new-owner-${runId}-${Date.now()}@example.com`;
 
     await auth.goto('/signup');
-    await auth.signup(`New Owner ${runId}`, email, 'Password123!', 'owner');
+    await auth.signup(`New Owner ${runId}`, email, 'Password123!');
 
     await expect(page).toHaveURL(/\/$/);
     await auth.expectHeading(/Welcome back/i);
+  });
+
+  test('redirects unauthenticated visitors to login and remembers the requested page', async ({ page }) => {
+    await page.goto('/products');
+    await expect(page).toHaveURL(/\\/login\\?next=/);
   });
 
   test('opens protected pages after logging in', async ({ page }) => {
