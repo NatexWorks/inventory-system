@@ -1,5 +1,9 @@
 // Test helper route that creates a sample order payload.
 export async function POST() {
+  // This placeholder is only for local/test use; never expose demo data in production.
+  if (process.env.NODE_ENV === "production") {
+    return Response.json({ success: false, message: "Not found" }, { status: 404 });
+  }
   const fakeOrder = {
     orderId: "ORD_" + Math.floor(Math.random() * 10000),
     customer: "John Doe",
