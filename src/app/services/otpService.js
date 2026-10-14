@@ -93,16 +93,8 @@ export async function sendEmailOtp({ email: rawEmail, purpose, name = "" }) {
   );
 
   try {
-    const debugMode = canExposeDevelopmentOtp();
-    const smtpConfigured = Boolean(
-      process.env.SMTP_HOST &&
-      process.env.SMTP_USER &&
-      process.env.SMTP_PASS &&
-      (process.env.SMTP_FROM || process.env.SMTP_USER)
-    );
-
-    if (debugMode && !smtpConfigured) {
-      // Explicit local-only test mode so Playwright can exercise the flow without SMTP.
+    if (canExposeDevelopmentOtp()) {
+      // Explicit local-only test mode: don't send test emails to real SMTP inboxes.
       return { ok: true, developmentOtp: otp };
     }
 
@@ -113,10 +105,7 @@ export async function sendEmailOtp({ email: rawEmail, purpose, name = "" }) {
       purpose,
     });
 
-    return {
-      ok: true,
-      ...(canExposeDevelopmentOtp() ? { developmentOtp: otp } : {}),
-    };
+    return { ok: true };
   } catch (error) {
     // Invalidate a code that was not successfully delivered.
     await EmailOtp.updateOne({ _id: saved._id, consumedAt: null }, { $set: { consumedAt: new Date() } });
