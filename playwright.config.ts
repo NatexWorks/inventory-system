@@ -43,6 +43,7 @@ export default defineConfig({
   ],
   webServer: {
     command: 'npm run dev',
+    env: { OTP_DEV_RETURN_CODE: "true" },
     url: baseURL,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
