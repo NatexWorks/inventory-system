@@ -38,11 +38,9 @@ export default function ProductForm({
     .filter(Boolean);
   const scannedCount = scannedBarcodes.length;
 
+  // Keep the captured list in view after a scan without stealing focus from
+  // the camera/scanner or opening the mobile keyboard unexpectedly.
   useEffect(() => {
-    if (barcodeFieldRef.current) {
-      barcodeFieldRef.current.focus();
-    }
-
     if (barcodeListRef.current) {
       barcodeListRef.current.scrollTop = barcodeListRef.current.scrollHeight;
     }
