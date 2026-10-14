@@ -36,16 +36,6 @@ jobs:
     name: OTP signup and password-reset tests
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    services:
-      mongodb:
-        image: mongo:7
-        ports:
-          - 27017:27017
-        options: >-
-          --health-cmd "mongosh --quiet --eval 'db.adminCommand({ ping: 1 }).ok' "
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 10
     env:
       MONGODB_URI: mongodb://127.0.0.1:27017/inventoryDB
       JWT_SECRET: ci-only-jwt-secret-do-not-use-in-production-123456789
@@ -62,6 +52,20 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci
+      - name: Start MongoDB replica set for transaction-backed API tests
+        run: |
+          docker run --detach --name inventory-mongo-test --publish 27017:27017 mongo:7 mongod --replSet rs0 --bind_ip_all
+          for attempt in $(seq 1 30); do
+            if docker exec inventory-mongo-test mongosh --quiet --eval 'db.adminCommand({ ping: 1 }).ok' | grep -q 1; then break; fi
+            sleep 2
+          done
+          docker exec inventory-mongo-test mongosh --quiet --eval 'rs.initiate({_id:"rs0",members:[{_id:0,host:"127.0.0.1:27017"}]})'
+          for attempt in $(seq 1 30); do
+            if docker exec inventory-mongo-test mongosh --quiet --eval 'try { rs.status().ok } catch(e) { 0 }' | grep -q 1; then exit 0; fi
+            sleep 2
+          done
+          docker logs inventory-mongo-test
+          exit 1
       - name: Install Chromium for Playwright
         run: npx playwright install --with-deps chromium
       - name: Run auth API and browser tests
