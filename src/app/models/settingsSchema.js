@@ -12,6 +12,16 @@ const settingsSchema = new Schema(
       autoBarcodeGeneration: { type: Boolean, default: false },
       barcodeMode: { type: String, enum: ["optional", "strict"], default: "optional" },
     },
+    store: {
+      storeName: { type: String, trim: true, default: "", maxlength: 120 },
+      storeEmail: { type: String, trim: true, lowercase: true, default: "", maxlength: 254 },
+      storeAddress: { type: String, trim: true, default: "", maxlength: 500 },
+    },
+    notifications: {
+      lowStockAlerts: { type: Boolean, default: true },
+      orderUpdates: { type: Boolean, default: true },
+      weeklySummary: { type: Boolean, default: true },
+    },
     billing: {
       invoiceEnabled: { type: Boolean, default: true },
       taxPercentage: { type: Number, default: 0 },
