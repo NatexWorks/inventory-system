@@ -6,13 +6,11 @@ import { AUTH_COOKIE_NAME } from "./authConstants";
 
 export { AUTH_COOKIE_NAME };
 
-const FALLBACK_JWT_SECRET = "dev-inventory-secret-change-me";
-
-// Reads the JWT secret from the environment with a safe development fallback.
+// JWT signing secrets must remain server-only and be configured explicitly.
 function getJwtSecret() {
-  const secret = process.env.JWT_SECRET || process.env.NEXT_PUBLIC_JWT_SECRET || FALLBACK_JWT_SECRET;
-  if (!secret) {
-    throw new Error("JWT_SECRET is required");
+  const secret = process.env.JWT_SECRET;
+  if (!secret || secret.length < 32) {
+    throw new Error("JWT_SECRET must be configured as a random server-only secret of at least 32 characters");
   }
   return secret;
 }
