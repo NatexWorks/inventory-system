@@ -311,6 +311,108 @@ export async function updateProduct(userId, id, input) {
   return product;
 }
 
+export async function addProductBarcodes(userId, id, inputBarcodes = []) {
+  await dbConnect();
+
+  const product = await Product.findOne({ _id: id, userId }).lean();
+  if (!product) {
+    throw new Error("Product not found");
+  }
+
+  const rawCodes = (Array.isArray(inputBarcodes) ? inputBarcodes : [])
+    .map((item) => String(item?.code || "").trim())
+    .filter(Boolean);
+  if (rawCodes.length === 0) {
+    throw new Error("Enter at least one barcode to add");
+  }
+
+  const seen = new Set();
+  for (const code of rawCodes) {
+    if (seen.has(code)) {
+      throw new Error(`Barcode ${code} is entered more than once.`);
+    }
+    seen.add(code);
+  }
+
+  const existingProductCodes = new Set(
+    (Array.isArray(product.barcodes) ? product.barcodes : [])
+      .map((item) => String(item?.code || "").trim())
+      .filter(Boolean)
+  );
+  for (const code of rawCodes) {
+    if (existingProductCodes.has(code)) {
+      throw new Error(`Barcode ${code} is already assigned to this product.`);
+    }
+  }
+
+  if (product.barcodeMode === "UNIT") {
+    const availableSlots = Math.max(0, Number(product.stock || 0) - existingProductCodes.size);
+    if (rawCodes.length > availableSlots) {
+      throw new Error(`Only ${availableSlots} unassigned stock barcode slot(s) remain.`);
+    }
+  }
+
+  // Check ownership before writing anything so a conflicting code cannot
+  // partially update the Product document.
+  const existingRecords = await Barcode.find({
+    userId,
+    code: { $in: rawCodes },
+  }).lean();
+
+  if (existingRecords.length > 0) {
+    const owners = new Map(existingRecords.map((item) => [item.code, String(item.productId)]));
+    for (const code of rawCodes) {
+      if (owners.has(code)) {
+        throw new Error(
+          owners.get(code) === String(product._id)
+            ? `Barcode ${code} is already linked to this product.`
+            : `Barcode ${code} already belongs to another product.`
+        );
+      }
+    }
+  }
+
+  let createdBarcodes = [];
+  try {
+    createdBarcodes = await Barcode.insertMany(
+      rawCodes.map((code) => ({
+        userId,
+        productId: product._id,
+        code,
+        state: BARCODE_STATES.AVAILABLE,
+      })),
+      { ordered: true }
+    );
+
+    const assignments = createdBarcodes.map((item) => ({
+      code: item.code,
+      state: item.state || BARCODE_STATES.AVAILABLE,
+      barcodeId: item._id,
+    }));
+
+    const updatedProduct = await Product.findOneAndUpdate(
+      { _id: product._id, userId },
+      { $push: { barcodes: { $each: assignments } } },
+      { returnDocument: "after", runValidators: true }
+    );
+
+    if (!updatedProduct) {
+      throw new Error("Product could not be updated with the new barcodes");
+    }
+
+    return updatedProduct;
+  } catch (error) {
+    if (createdBarcodes.length > 0) {
+      await Barcode.deleteMany({
+        _id: { $in: createdBarcodes.map((item) => item._id) },
+        userId,
+        productId: product._id,
+      }).catch(() => {});
+    }
+    throw error;
+  }
+}
+
 export async function deleteProduct(userId, id) {
   await dbConnect();
   await Barcode.deleteMany({ userId, productId: id });
