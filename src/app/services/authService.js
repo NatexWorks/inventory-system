@@ -108,6 +108,7 @@ export async function consumeMagicLinkRequest(email, fallbackName = "") {
         email: normalizedEmail,
         role: resolvedRole,
         isActive: true,
+        emailVerified: true,
       },
       $setOnInsert: {
         passwordHash: crypto.randomBytes(32).toString("hex"),
