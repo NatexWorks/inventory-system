@@ -19,7 +19,6 @@ export default function AuthForm({ mode = "login", redirectPath = "/" }) {
     name: "",
     email: "",
     password: "",
-    role: "owner",
   });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
@@ -48,7 +47,6 @@ export default function AuthForm({ mode = "login", redirectPath = "/" }) {
             name: form.name,
             email: form.email,
             password: form.password,
-            role: form.role,
           }),
         });
 
@@ -176,21 +174,6 @@ export default function AuthForm({ mode = "login", redirectPath = "/" }) {
                 />
               </div>
             </label>
-
-            {isSignup ? (
-              <label className="block">
-                <span className="mb-2 block text-sm font-medium text-slate-700">Account Type</span>
-                <select
-                  name="role"
-                  value={form.role}
-                  onChange={updateField}
-                  className={baseField}
-                >
-                  <option value="owner">Owner</option>
-                  <option value="staff">Staff</option>
-                </select>
-              </label>
-            ) : null}
 
             {error ? (
               <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>
