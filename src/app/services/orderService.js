@@ -81,6 +81,90 @@ export async function getOrderById(userId, id) {
   return Order.findOne({ _id: id, userId }).lean();
 }
 
+
+export async function updatePendingOrder(userId, id, input, settings = {}) {
+  await dbConnect();
+  const session = await mongoose.startSession();
+  try {
+    let updatedOrder = null;
+    await session.withTransaction(async () => {
+      const order = await Order.findOne({
+        _id: id, userId,
+        status: { $in: [ORDER_STATES.DRAFT, ORDER_STATES.PENDING_APPROVAL] },
+      }).session(session);
+      if (!order) throw new Error("Only draft or pending orders can be edited.");
+      if (!Array.isArray(input.items) || input.items.length === 0) throw new Error("Add at least one product.");
+
+      const nextItems = [];
+      const nextUnitCodes = new Set();
+      const itemKeys = new Set();
+      for (const item of input.items) {
+        const identity = await resolveBarcodeIdentity(userId, item, session);
+        if (!identity.productId) throw new Error("An order item has no valid product.");
+        const productQuery = Product.findOne({ _id: identity.productId, userId }).select("name price stock barcodeMode");
+        productQuery.session(session);
+        const product = await productQuery.lean();
+        if (!product) throw new Error("One of the selected products no longer exists.");
+
+        const quantity = Number(item.quantity);
+        if (!Number.isInteger(quantity) || quantity < 1) throw new Error(`Quantity for ${product.name} must be a positive whole number.`);
+        if (identity.barcode && identity.barcodeMode === "UNIT" && quantity !== 1) {
+          throw new Error(`Barcode ${identity.barcode} represents one unit only.`);
+        }
+        if (!(identity.barcode && identity.barcodeMode === "UNIT") && quantity > Number(product.stock || 0)) {
+          throw new Error(`Insufficient stock for ${product.name}. Available: ${Number(product.stock || 0)}.`);
+        }
+
+        const isUnitBarcode = Boolean(identity.barcode && identity.barcodeMode === "UNIT");
+        const key = isUnitBarcode ? `barcode:${identity.barcode}` : `product:${String(product._id)}`;
+        if (itemKeys.has(key)) throw new Error(`Duplicate order line for ${product.name}.`);
+        itemKeys.add(key);
+        if (isUnitBarcode) nextUnitCodes.add(identity.barcode);
+
+        const price = Number(product.price || 0);
+        nextItems.push({
+          productId: product._id, barcodeId: identity.barcodeId || null,
+          barcode: identity.barcode || "", name: product.name, quantity, price,
+          lineTotal: price * quantity,
+        });
+      }
+
+      const discountAmount = Number(input.discountAmount ?? order.discountAmount ?? 0);
+      const subtotal = nextItems.reduce((sum, item) => sum + item.lineTotal, 0);
+      if (!Number.isFinite(discountAmount) || discountAmount < 0 || discountAmount > subtotal) {
+        throw new Error("Discount must be between zero and the order subtotal.");
+      }
+      const amounts = calculateAmounts(nextItems, settings?.billing?.taxPercentage || 0, discountAmount);
+
+      const oldUnitCodes = new Set();
+      for (const oldItem of order.items || []) {
+        const identity = await resolveBarcodeIdentity(userId, oldItem, session);
+        if (identity.barcode && identity.barcodeMode === "UNIT") oldUnitCodes.add(identity.barcode);
+      }
+      for (const code of oldUnitCodes) {
+        if (!nextUnitCodes.has(code)) await releaseReservedBarcode(userId, code, session);
+      }
+      for (const code of nextUnitCodes) {
+        if (!oldUnitCodes.has(code)) await reserveBarcodeForOrder(userId, code, order._id, session);
+      }
+
+      order.items = nextItems;
+      order.subtotal = amounts.subtotal;
+      order.taxAmount = amounts.taxAmount;
+      order.discountAmount = discountAmount;
+      order.totalAmount = amounts.totalAmount;
+      if (input.customerName !== undefined) order.customerName = input.customerName;
+      if (input.customerPhone !== undefined) order.customerPhone = input.customerPhone;
+      if (input.notes !== undefined) order.notes = input.notes;
+      await order.save({ session });
+      updatedOrder = order;
+    });
+    return updatedOrder;
+  } finally {
+    session.endSession();
+  }
+}
+
 export async function createOrder(userId, input, settings = {}) {
   await dbConnect();
   const session = await mongoose.startSession();
