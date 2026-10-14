@@ -67,6 +67,9 @@ export default function Sidebar({ open, handleClick, className = "", user, mobil
             <Link
               key={index}
               href={item.href}
+              onClick={() => {
+                if (mobile) handleClick();
+              }}
               className={`mb-2 flex items-center gap-3 rounded-2xl px-4 py-3 transition-all duration-200 ${
                 isActive(item.href)
                   ? "bg-blue-600 text-white shadow-lg shadow-blue-900/20"
