@@ -7,6 +7,7 @@ const userSchema = new Schema(
   {
     name: { type: String, required: true, trim: true, minlength: 2, maxlength: 120 },
     email: { type: String, required: true, trim: true, lowercase: true, unique: true, index: true },
+    emailVerified: { type: Boolean, default: false, index: true },
     phone: { type: String, trim: true, default: "", maxlength: 30 },
     passwordHash: { type: String, required: true },
     role: { type: String, enum: ["owner", "staff"], default: "owner", index: true },
