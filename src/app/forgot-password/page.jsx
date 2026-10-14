@@ -1,6 +1,6 @@
-import { redirect } from "next/navigation";
+import ForgotPasswordForm from "@/app/components/ForgotPasswordForm";
 
-// Thin wrapper page that renders the password recovery form.
+// Keep the account recovery form accessible at its dedicated route.
 export default function ForgotPasswordPage() {
-  redirect("/");
+  return <ForgotPasswordForm />;
 }
