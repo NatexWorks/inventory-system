@@ -15,7 +15,7 @@ import {
 } from "react-icons/md";
 import { usePathname } from "next/navigation";
 
-export default function Sidebar({ open, handleClick, className = "", user }) {
+export default function Sidebar({ open, handleClick, className = "", user, mobile = false }) {
   // Navigation items are declared in one place so the sidebar is easy to extend.
   const menuItems = [
     { name: "Dashboard", icon: <MdDashboard />, href: "/" },
@@ -36,9 +36,17 @@ export default function Sidebar({ open, handleClick, className = "", user }) {
     return pathname.startsWith(href);
   };
 
+  const shellClassName = mobile
+    ? `fixed inset-y-0 left-0 z-50 flex min-h-screen w-72 max-w-[85vw] flex-col border-r border-slate-800/80 bg-linear-to-b from-[#081028] to-[#0b1739] text-white shadow-2xl transition-transform duration-300 ${open ? "translate-x-0" : "-translate-x-full"} ${className}`
+    : `flex min-h-screen flex-col border-r border-slate-800/80 bg-linear-to-b from-[#081028] to-[#0b1739] text-white transition-all duration-300 ${open ? "w-72" : "w-0 overflow-hidden"} ${className}`;
+
   return (
     <>
-      <div className={`flex min-h-screen flex-col border-r border-slate-800/80 bg-linear-to-b from-[#081028] to-[#0b1739] text-white transition-all duration-300 ${open ? "w-72" : "w-0 overflow-hidden"} ${className}`}>
+      <div
+        aria-hidden={mobile && !open}
+        inert={mobile && !open}
+        className={shellClassName}
+      >
         <div className="flex items-center justify-between border-b border-white/10 px-5 py-5">
           <h1 className="flex items-center gap-2 text-lg font-bold">
             <MdInventory className="text-2xl text-blue-400" />
