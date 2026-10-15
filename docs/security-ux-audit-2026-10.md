@@ -13,6 +13,7 @@
 - **Response hardening:** added clickjacking, MIME-sniffing, referrer, camera/microphone/geolocation, and HSTS headers.
 - **UX corrections:** removed the redirect that made the existing `/pos` page inaccessible, and clearly labelled the supplier list as illustrative sample data. Supplier search now filters the displayed rows and the sample metrics match those rows.
 - **Repository hygiene:** removed the generated Playwright report, which included developer-local filesystem paths, and added it to `.gitignore`.
+- **Index/configuration warnings:** removed a duplicate magic-link expiry-index declaration and updated Mongoose calls to the supported `returnDocument: "after"` option.
 - **Password handling:** new passwords are limited to 72 UTF-8 bytes to avoid bcrypt's 72-byte truncation issue.
 
 ## Findings that still require product decisions or live verification
@@ -26,18 +27,21 @@
 ### Medium priority
 
 4. **Account email changes are not re-verified.** The profile update endpoint can change the account email while leaving `emailVerified` unchanged. Add a dedicated email-change OTP/confirmation flow before relying on this field for verified contact details or security notifications.
-5. **Supplier functionality is a prototype.** The page still uses illustrative hard-coded suppliers; it is now labelled honestly, but does not yet persist supplier records per workspace.
-6. **QR/session destination needs a route check.** Session creation builds QR URLs for `/sessions/<sessionId>`, but the current App Router tree does not contain a matching `/sessions/[sessionId]` page. Verify the intended customer-device flow or implement that route before using QR sessions in production.
-7. **Realtime events are process-local.** The current event bus uses Node's in-process `EventEmitter`. It will not reliably broadcast between different Vercel serverless instances; use a managed pub/sub or hosted realtime service if cross-device live updates are a product requirement.
-8. **Email delivery and recovery need live tests.** SMTP credentials, Gmail/Brevo policy, sender acceptance, spam placement, and provider quotas cannot be proven by lint/build. Exercise signup, resend cooldown, wrong-code attempts, expiry, password reset, and delivery failure in Production with a test mailbox.
-9. **Configured session timeout is not enforced by the auth cookie.** The settings UI stores a timeout value, while the JWT cookie is still issued for seven days. Implement server-side inactivity/session records or remove the misleading setting until it is enforced.
-10. **Offline support is limited.** Draft carts are stored locally, but API-backed inventory/orders and synchronization still require the server. Describe this as offline draft support rather than full offline operation until sync/conflict behavior is implemented.
+5. **Customer management is not implemented.** The route test explicitly expects `/customers` to return 404. Customer names and phone numbers currently live on orders, but there is no dedicated customer directory/history/CRM workflow.
+6. **Supplier functionality is a prototype.** The page still uses illustrative hard-coded suppliers; it is now labelled honestly, but does not yet persist supplier records per workspace.
+7. **QR/session destination needs a route check.** Session creation builds QR URLs for `/sessions/<sessionId>`, but the current App Router tree does not contain a matching `/sessions/[sessionId]` page. Verify the intended customer-device flow or implement that route before using QR sessions in production.
+8. **Realtime events are process-local.** The current event bus uses Node's in-process `EventEmitter`. It will not reliably broadcast between different Vercel serverless instances; use a managed pub/sub or hosted realtime service if cross-device live updates are a product requirement.
+9. **Email delivery and recovery need live tests.** SMTP credentials, Gmail/Brevo policy, sender acceptance, spam placement, and provider quotas cannot be proven by lint/build. Exercise signup, resend cooldown, wrong-code attempts, expiry, password reset, and delivery failure in Production with a test mailbox.
+10. **Configured session timeout is not enforced by the auth cookie.** The settings UI stores a timeout value, while the JWT cookie is still issued for seven days. Implement server-side inactivity/session records or remove the misleading setting until it is enforced.
+11. **Offline support is limited.** Draft carts are stored locally, but API-backed inventory/orders and synchronization still require the server. Describe this as offline draft support rather than full offline operation until sync/conflict behavior is implemented.
 
 ### Lower priority / ongoing hardening
 
-11. **Content Security Policy is not enabled.** The added headers cover several baseline controls, but a tailored CSP should be designed and tested with Next.js runtime scripts, styles, camera scanning, and any future third-party assets rather than applying an untested policy.
-12. **No independent security test has been performed.** Before real customer data is stored, test object-level authorization across every ID-based endpoint, cross-tenant access, duplicate/parallel stock operations, request size limits, session expiry, and dependency advisories. The existing Playwright checks cover a subset of these cases.
-13. **Staff-account lifecycle is incomplete.** Public signup correctly creates an owner; staff role assignment needs a deliberate owner-authorized invitation/provisioning flow if multi-user workspaces are required.
+12. **Content Security Policy is not enabled.** The added headers cover several baseline controls, but a tailored CSP should be designed and tested with Next.js runtime scripts, styles, camera scanning, and any future third-party assets rather than applying an untested policy.
+13. **Logout only clears the browser cookie.** JWTs are stateless and otherwise remain valid for up to seven days; a copied/stolen token can continue working until it expires, the account is disabled, or a password change increments the token version. Use server-side session records/revocation if immediate per-device logout is a requirement.
+14. **`emailVerified` is not checked at login.** Current OTP signup sets it correctly, but legacy or manually-created unverified accounts would still be able to sign in if active.
+15. **No independent security test has been performed.** Before real customer data is stored, test object-level authorization across every ID-based endpoint, cross-tenant access, duplicate/parallel stock operations, request size limits, session expiry, and dependency advisories. The existing Playwright checks cover a subset of these cases.
+16. **Staff-account lifecycle is incomplete.** Public signup correctly creates an owner; staff role assignment needs a deliberate owner-authorized invitation/provisioning flow if multi-user workspaces are required.
 
 ## Demo account setup
 
