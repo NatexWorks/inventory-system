@@ -1,5 +1,8 @@
 import bcrypt from "bcryptjs";
 import { MongoClient } from "mongodb";
+import { loadEnvConfig } from "@next/env";
+
+loadEnvConfig(process.cwd());
 
 const MONGODB_URI = process.env.MONGODB_URI;
 const DEMO_EMAIL = "demo@inventory-system.test";
