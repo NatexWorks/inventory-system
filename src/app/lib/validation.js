@@ -4,11 +4,17 @@ import { BARCODE_STATES, ORDER_STATES, SESSION_STATES } from "./stateMachine";
 
 const objectId = z.string().trim().min(1, "Invalid id");
 
+// bcrypt only considers the first 72 UTF-8 bytes. Reject longer new passwords so distinct inputs never share the same hash prefix.
+const newPasswordSchema = z.string().min(8).max(128).refine(
+  (value) => new TextEncoder().encode(value).length <= 72,
+  "Password must be no more than 72 UTF-8 bytes."
+);
+
 // Auth and recovery forms validate against these schemas before reaching services.
 export const authSignupSchema = z.object({
   name: z.string().trim().min(2).max(120),
   email: z.string().trim().email(),
-  password: z.string().min(8).max(128),
+  password: newPasswordSchema,
 });
 
 // Public signup and password recovery require a six-digit emailed OTP.
@@ -40,7 +46,7 @@ export const forgotPasswordSchema = z.object({
 export const resetPasswordSchema = z.object({
   token: z.string().trim().min(10),
   password: z.string().min(8).max(128),
-  confirmPassword: z.string().min(8).max(128),
+  confirmPassword: newPasswordSchema,
 }).refine((value) => value.password === value.confirmPassword, {
   message: "Passwords do not match",
   path: ["confirmPassword"],
@@ -164,7 +170,7 @@ export const profileSchema = z.object({
 // Password updates always verify the current password before replacing it.
 export const changePasswordSchema = z.object({
   currentPassword: z.string().min(1, "Enter your current password"),
-  newPassword: z.string().min(8).max(128),
+  newPassword: newPasswordSchema,
   confirmPassword: z.string().min(8).max(128),
 }).refine((value) => value.newPassword === value.confirmPassword, {
   message: "New passwords do not match",
