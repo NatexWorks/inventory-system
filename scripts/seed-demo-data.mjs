@@ -1,6 +1,12 @@
 import mongoose from "mongoose";
+import bcrypt from "bcryptjs";
 
-process.env.MONGODB_URI ||= "mongodb://localhost:27017/inventoryDB";
+if (!process.env.MONGODB_URI) {
+  throw new Error("Set MONGODB_URI to the intended database before running the demo seed script.");
+}
+
+const DEMO_EMAIL = "demo@inventory-system.test";
+const DEMO_PASSWORD = "Demo@12345";
 
 const { default: dbConnect } = await import("../src/app/lib/db.js");
 const { default: User } = await import("../src/app/models/userSchema.js");
@@ -76,10 +82,25 @@ async function upsertProduct(userId, category, input) {
 async function main() {
   await dbConnect();
 
-  const user = await User.findOne({ isActive: true }).sort({ createdAt: 1 }).lean();
-  if (!user) {
-    throw new Error("No active user found to attach demo data");
-  }
+  // Never attach sample data to the first/oldest real customer. All demo records
+  // belong to this dedicated account, whose protected APIs are read-only.
+  const passwordHash = await bcrypt.hash(DEMO_PASSWORD, 12);
+  const user = await User.findOneAndUpdate(
+    { email: DEMO_EMAIL },
+    {
+      $set: {
+        name: "Inventory Demo Store",
+        email: DEMO_EMAIL,
+        passwordHash,
+        role: "owner",
+        isActive: true,
+        emailVerified: true,
+        isDemo: true,
+      },
+      $inc: { tokenVersion: 1 },
+    },
+    { upsert: true, new: true, runValidators: true, setDefaultsOnInsert: false }
+  );
 
   await Settings.findOneAndUpdate(
     { userId: user._id },
