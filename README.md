@@ -1,3 +1,12 @@
+## Public demo account
+
+The login and signup pages show these intentionally public demo credentials:
+
+- Email: `demo@inventory-system.test`
+- Password: `Demo@12345`
+
+The demo workspace is read-only and has its own sample data. To make the demo login work on a deployed environment, run `npm run seed:demo` once against the same MongoDB database configured for that deployment. See [the demo account setup guide](docs/demo-account.md). Never paste your MongoDB connection string into public issues or commit it to Git.
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
 
 ## Getting Started
