@@ -32,11 +32,7 @@ const MAINTENANCE_MESSAGE = "Site under maintenance. Please try again shortly.";
 // Normalizes thrown errors into a standard API response payload.
 export function normalizeError(error) {
   if (!error) {
-    return {
-      message: MAINTENANCE_MESSAGE,
-      status: 500,
-      errors: null,
-    };
+    return { message: MAINTENANCE_MESSAGE, status: 500, errors: null };
   }
 
   if (error.name === "ZodError" || error.name === "ValidationError") {
@@ -46,16 +42,17 @@ export function normalizeError(error) {
       status: 400,
       errors: issues.length
         ? issues.map((item) => item.message || "Invalid value")
-        : [error.message || "Validation failed"],
+        : ["Invalid value"],
     };
   }
 
+  // Duplicate-key errors can contain the raw MongoDB message and keyValue details.
+  // Keep the conflict useful without exposing collection/index internals.
   if (error.code === 11000) {
-    const duplicateField = Object.keys(error.keyValue || {})[0] || "field";
     return {
-      message: `${duplicateField} already exists`,
+      message: "A record with this value already exists.",
       status: 409,
-      errors: [error.message],
+      errors: null,
     };
   }
 
@@ -82,6 +79,6 @@ export function normalizeError(error) {
   return {
     message: "Something went wrong. Please check your request and try again.",
     status: 400,
-    errors: error.errors || null,
+    errors: null,
   };
 }

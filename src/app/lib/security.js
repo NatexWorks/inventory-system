@@ -30,10 +30,13 @@ export function signToken(payload) {
   return jwt.sign(payload, getJwtSecret(), { expiresIn: "7d" });
 }
 
-// Verifies and decodes an auth token, returning null when invalid.
+// Verifies a signed token. Configuration errors remain server errors; invalid tokens return null.
 export function verifyToken(token) {
+  if (!token) return null;
+  const secret = getJwtSecret();
+
   try {
-    return jwt.verify(token, getJwtSecret());
+    return jwt.verify(token, secret, { algorithms: ["HS256"] });
   } catch {
     return null;
   }
@@ -45,8 +48,8 @@ export function readTokenFromRequest(request) {
 }
 
 // Reads the auth token from the server-side cookie store.
-export function readTokenFromCookieStore() {
-  return cookies().get(AUTH_COOKIE_NAME)?.value || null;
+export async function readTokenFromCookieStore() {
+  return (await cookies()).get(AUTH_COOKIE_NAME)?.value || null;
 }
 
 // Attaches the auth cookie to a response after login or signup.
@@ -96,6 +99,7 @@ export function createAuthPayload(user) {
     userId: String(user.userId || user._id || user.id),
     role: user.role,
     email: user.email,
+    tokenVersion: Number(user.tokenVersion || 0),
   };
 }
 

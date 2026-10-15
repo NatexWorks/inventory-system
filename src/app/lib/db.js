@@ -1,6 +1,16 @@
 import mongoose from "mongoose";
 
-const MONGODB_URI = process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/inventory-saas";
+function getMongoUri() {
+  if (process.env.MONGODB_URI) {
+    return process.env.MONGODB_URI;
+  }
+
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("MONGODB_URI must be configured in the production environment.");
+  }
+
+  return "mongodb://127.0.0.1:27017/inventory-saas";
+}
 
 let cached = global.mongoose;
 
@@ -14,10 +24,16 @@ async function dbConnect() {
   }
 
   if (!cached.promise) {
-    cached.promise = mongoose.connect(MONGODB_URI).then((mongooseInstance) => mongooseInstance);
+    cached.promise = mongoose.connect(getMongoUri()).then((mongooseInstance) => mongooseInstance);
   }
 
-  cached.conn = await cached.promise;
+  try {
+    cached.conn = await cached.promise;
+  } catch (error) {
+    cached.promise = null;
+    throw error;
+  }
+
   return cached.conn;
 }
 

@@ -217,6 +217,13 @@ export default function ClientLayout({ children }) {
         <Navbar className="relative top-0 left-0 z-10" handleClick={toggleMobileSidebar} user={user} />
 
         <main className="min-w-0 flex-1">
+          {user?.isDemo ? (
+            <div role="status" className="flex flex-wrap items-center justify-center gap-2 border-b border-amber-200 bg-amber-50 px-4 py-3 text-center text-sm text-amber-900">
+              <strong>Demo mode — read-only.</strong>
+              <span>Your changes are disabled and your sample data is isolated.</span>
+              <a href="/signup" className="font-semibold underline underline-offset-2">Create your own account</a>
+            </div>
+          ) : null}
           {children}
         </main>
       </div>

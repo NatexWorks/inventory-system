@@ -9,6 +9,9 @@ import { MdArrowForward, MdLockOutline, MdPersonOutline } from "react-icons/md";
 const baseField =
   "w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-indigo-300 focus:bg-white";
 
+const DEMO_EMAIL = "demo@inventory-system.test";
+const DEMO_PASSWORD = "Demo@12345";
+
 export default function AuthForm({ mode = "login", redirectPath = "/", initialEmail = "", initialMessage = "" }) {
   // `mode` decides whether this form behaves like login or signup.
   const isSignup = mode === "signup";
@@ -169,6 +172,38 @@ export default function AuthForm({ mode = "login", redirectPath = "/", initialEm
             <p className="mt-2 text-sm text-slate-500">
               {isSignup ? "New user? Enter your name, email, and password. We will verify your email with a one-time code before creating the account." : "Already have an account? Enter the email and password you registered with. Use “Forgot password?” if you need to reset it."}
             </p>
+            {!isSignup ? (
+              <div className="mt-5 rounded-2xl border border-indigo-200 bg-indigo-50 p-4 text-sm text-slate-700">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="font-semibold text-indigo-900">Try the demo account</p>
+                  <span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-indigo-700">Read-only</span>
+                </div>
+                <p className="mt-2 text-xs leading-5 text-slate-600">
+                  Explore sample inventory, orders, and reports. Demo data is isolated from customer workspaces; changes are disabled.
+                </p>
+                <dl className="mt-3 grid gap-2 text-sm">
+                  <div className="flex flex-wrap gap-2">
+                    <dt className="font-medium text-slate-500">Email:</dt>
+                    <dd className="select-all font-semibold text-slate-900">{DEMO_EMAIL}</dd>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <dt className="font-medium text-slate-500">Password:</dt>
+                    <dd className="select-all font-semibold text-slate-900">{DEMO_PASSWORD}</dd>
+                  </div>
+                </dl>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setForm({ name: "", email: DEMO_EMAIL, password: DEMO_PASSWORD });
+                    setError("");
+                    setMessage("");
+                  }}
+                  className="mt-4 w-full rounded-xl border border-indigo-200 bg-white px-4 py-2.5 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-100"
+                >
+                  Fill demo credentials
+                </button>
+              </div>
+            ) : null}
           </div>
 
           <form onSubmit={handleSubmit} className="mt-8 space-y-4">
@@ -179,6 +214,7 @@ export default function AuthForm({ mode = "login", redirectPath = "/", initialEm
                   <MdPersonOutline className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-xl text-slate-400" />
                   <input
                     name="name"
+                    autoComplete="name"
                     value={form.name}
                     onChange={updateField}
                     className={`${baseField} pl-12`}
@@ -196,6 +232,7 @@ export default function AuthForm({ mode = "login", redirectPath = "/", initialEm
                 <input
                   name="email"
                   type="email"
+                  autoComplete="email"
                   value={form.email}
                   onChange={updateField}
                   className={`${baseField} pl-12`}
@@ -244,6 +281,9 @@ export default function AuthForm({ mode = "login", redirectPath = "/", initialEm
                 <input
                   name="password"
                   type="password"
+                  autoComplete={isSignup ? "new-password" : "current-password"}
+                  minLength={isSignup ? 8 : undefined}
+                  maxLength={128}
                   value={form.password}
                   onChange={updateField}
                   className={`${baseField} pl-12`}

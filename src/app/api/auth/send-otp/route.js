@@ -1,5 +1,5 @@
 import { success, failure, normalizeError } from "@/app/lib/response";
-import { parseJsonBody, rateLimit, jsonError } from "@/app/lib/apiHelpers";
+import { parseJsonBody, rateLimit, jsonError, getClientIp } from "@/app/lib/apiHelpers";
 import { sendOtpSchema } from "@/app/lib/validation";
 import { sendEmailOtp } from "@/app/services/otpService";
 
@@ -7,16 +7,12 @@ export async function POST(request) {
   try {
     const body = sendOtpSchema.parse(await parseJsonBody(request));
     const email = body.email.toLowerCase();
-    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+    const ip = getClientIp(request);
 
-    const emailLimit = rateLimit(`otp-email:${body.purpose}:${email}`, {
-      limit: 5,
-      windowMs: 15 * 60 * 1000,
-    });
-    const ipLimit = rateLimit(`otp-ip:${body.purpose}:${ip}`, {
-      limit: 15,
-      windowMs: 15 * 60 * 1000,
-    });
+    const [emailLimit, ipLimit] = await Promise.all([
+      rateLimit(`otp-email:${body.purpose}:${email}`, { limit: 5, windowMs: 15 * 60 * 1000 }),
+      rateLimit(`otp-ip:${body.purpose}:${ip}`, { limit: 15, windowMs: 15 * 60 * 1000 }),
+    ]);
 
     if (!emailLimit.allowed || !ipLimit.allowed) {
       return jsonError("Too many code requests. Please try again later.", 429);

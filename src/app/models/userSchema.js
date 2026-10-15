@@ -12,6 +12,10 @@ const userSchema = new Schema(
     passwordHash: { type: String, required: true },
     role: { type: String, enum: ["owner", "staff"], default: "owner", index: true },
     isActive: { type: Boolean, default: true },
+    // Public demo users must be isolated and prevented from mutating workspace data.
+    isDemo: { type: Boolean, default: false, index: true },
+    // Increment after password changes to revoke all older JWT sessions.
+    tokenVersion: { type: Number, default: 0, min: 0 },
   },
   { timestamps: true }
 );

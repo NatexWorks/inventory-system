@@ -3,7 +3,7 @@ import { assertAuth, parseJsonBody } from "@/app/lib/apiHelpers";
 import dbConnect from "@/app/lib/db";
 import User from "@/app/models/userSchema";
 import { changePasswordSchema } from "@/app/lib/validation";
-import { comparePassword, hashPassword } from "@/app/lib/security";
+import { applyAuthCookie, comparePassword, createAuthPayload, hashPassword, signToken } from "@/app/lib/security";
 
 export async function PUT(request) {
   try {
@@ -20,8 +20,10 @@ export async function PUT(request) {
     }
 
     user.passwordHash = await hashPassword(payload.newPassword);
+    user.tokenVersion = Number(user.tokenVersion || 0) + 1;
     await user.save();
-    return success("Password updated successfully.");
+    const response = success("Password updated. Other sessions have been signed out.");
+    return applyAuthCookie(response, signToken(createAuthPayload(user)));
   } catch (error) {
     const normalized = normalizeError(error);
     return failure(normalized.message, normalized.errors, normalized.status);

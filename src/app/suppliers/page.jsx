@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { MdLocalShipping, MdMailOutline, MdPhone, MdSearch, MdStar } from "react-icons/md";
 
 // Static supplier data keeps this page simple until a live backend is connected.
@@ -48,12 +49,18 @@ export default function SuppliersPage() {
               <p className="mt-2 max-w-2xl text-sm text-slate-500">
                 Keep track of vendor contacts, fulfillment strength, and sourcing reliability.
               </p>
+              <p role="note" className="mt-3 inline-flex rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-800">
+                Preview only — these are sample records, not your saved supplier data.
+              </p>
             </div>
 
             <div className="flex w-full min-w-0 items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm sm:w-auto">
               <MdSearch className="text-xl text-slate-400" />
               <input
-                placeholder="Search suppliers..."
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Search sample suppliers..."
+                aria-label="Search sample suppliers"
                 className="min-w-0 flex-1 bg-transparent text-sm text-slate-700 outline-none placeholder:text-slate-400"
               />
             </div>
@@ -86,7 +93,7 @@ export default function SuppliersPage() {
                 </tr>
               </thead>
               <tbody>
-                {suppliers.map((supplier) => (
+                {filteredSuppliers.map((supplier) => (
                   <tr key={supplier.name} className="border-t border-slate-100 transition hover:bg-slate-50/80">
                     <td className="px-5 py-4">
                       <p className="font-semibold text-slate-900">{supplier.name}</p>
@@ -104,6 +111,9 @@ export default function SuppliersPage() {
                 ))}
               </tbody>
             </table>
+            {filteredSuppliers.length === 0 ? (
+              <p role="status" className="px-5 py-8 text-center text-sm text-slate-500">No sample suppliers match “{search}”.</p>
+            ) : null}
           </div>
         </section>
       </div>

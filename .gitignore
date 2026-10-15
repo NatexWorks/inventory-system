@@ -48,3 +48,6 @@ node_modules/
 /blob-report/
 /playwright/.cache/
 /playwright/.auth/
+
+# Generated Playwright JSON report (may contain local paths and test artifacts)
+/firstReport.json
