@@ -1,21 +1,17 @@
 // Auth route that sends a password-reset OTP by email.
 import { success, failure, normalizeError } from "@/app/lib/response";
-import { parseJsonBody, rateLimit, jsonError } from "@/app/lib/apiHelpers";
+import { parseJsonBody, rateLimit, jsonError, getClientIp } from "@/app/lib/apiHelpers";
 import { requestPasswordReset } from "@/app/services/authService";
 
 export async function POST(request) {
   try {
     const body = await parseJsonBody(request);
     const email = String(body?.email || "unknown").toLowerCase();
-    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
-    const limit = rateLimit(`forgot-email:${email}`, {
-      limit: 5,
-      windowMs: 10 * 60 * 1000,
-    });
-    const ipLimit = rateLimit(`forgot-ip:${ip}`, {
-      limit: 15,
-      windowMs: 10 * 60 * 1000,
-    });
+    const ip = getClientIp(request);
+    const [limit, ipLimit] = await Promise.all([
+      rateLimit(`forgot-email:${email}`, { limit: 5, windowMs: 10 * 60 * 1000 }),
+      rateLimit(`forgot-ip:${ip}`, { limit: 15, windowMs: 10 * 60 * 1000 }),
+    ]);
     if (!limit.allowed || !ipLimit.allowed) {
       return jsonError("Too many requests. Please try again later.", 429);
     }
