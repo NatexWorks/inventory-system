@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import bcrypt from 'bcryptjs';
 import { MongoClient } from 'mongodb';
-import { loadSeedData } from '../fixtures/testData';
+import { loadSeedData, ownerStorageStatePath } from '../fixtures/testData';
 import { expectFailure, expectSuccess, withApiContext } from '../fixtures/api';
 
 test.describe('Auth API', () => {
@@ -67,6 +67,18 @@ test.describe('Auth API', () => {
     });
   });
 
+
+
+  test('rejects cross-origin state-changing requests with an authenticated session', async () => {
+    await withApiContext(ownerStorageStatePath, async (request) => {
+      const response = await request.post('/api/category', {
+        headers: { Origin: 'https://attacker.example' },
+        data: { name: `Cross-origin category ${Date.now()}` },
+      });
+      const payload = await expectFailure(response, 403);
+      expect(String(payload.message)).toMatch(/cross-origin/i);
+    });
+  });
 
   test('demo login can read its workspace but cannot mutate it through the API', async () => {
     if (!process.env.MONGODB_URI) {
