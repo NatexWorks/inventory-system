@@ -152,51 +152,75 @@ export function sanitizeSearch(value) {
   return escaped.trim();
 }
 
-// Uses a MongoDB atomic update so authentication throttles persist across serverless
-// instances. The original email/IP is never stored in the rate-limit collection.
+// MongoDB-backed fixed-window throttling survives serverless cold starts and
+// multiple instances. Keys are hashed so raw emails and IP addresses are not stored.
+let rateLimitIndexesReady;
+
+async function ensureRateLimitIndexes() {
+  if (!rateLimitIndexesReady) {
+    rateLimitIndexesReady = RateLimit.init().catch((error) => {
+      rateLimitIndexesReady = null;
+      throw error;
+    });
+  }
+  await rateLimitIndexesReady;
+}
+
 export async function rateLimit(key, { limit = 10, windowMs = 60_000 } = {}) {
   await dbConnect();
+  await ensureRateLimitIndexes();
 
   const now = new Date();
   const resetAt = new Date(now.getTime() + windowMs);
   const keyHash = crypto.createHash("sha256").update(String(key)).digest("hex");
-  const activeWindow = {
-    $gt: [{ $ifNull: ["$expiresAt", new Date(0)] }, now],
-  };
 
-  const updatePipeline = [
-    {
-      $set: {
-        key: { $literal: keyHash },
-        count: {
-          $cond: [
-            activeWindow,
-            { $add: [{ $ifNull: ["$count", 0] }, 1] },
-            1,
-          ],
-        },
-        expiresAt: { $cond: [activeWindow, "$expiresAt", resetAt] },
-      },
-    },
-  ];
+  // Increment an active bucket in one atomic operation.
+  let bucket = await RateLimit.findOneAndUpdate(
+    { key: keyHash, expiresAt: { $gt: now } },
+    { $inc: { count: 1 } },
+    { new: true }
+  ).lean();
 
-  let bucket;
-  try {
+  // Atomically recycle an expired bucket if one exists.
+  if (!bucket) {
     bucket = await RateLimit.findOneAndUpdate(
-      { key: keyHash },
-      updatePipeline,
-      { upsert: true, new: true }
-    ).lean();
-  } catch (error) {
-    // Two requests may race to create the same first bucket. Retry atomically
-    // without upsert when the unique key has already been inserted by the other.
-    if (error?.code !== 11000) throw error;
-    bucket = await RateLimit.findOneAndUpdate(
-      { key: keyHash },
-      updatePipeline,
+      { key: keyHash, expiresAt: { $lte: now } },
+      { $set: { count: 1, expiresAt: resetAt } },
       { new: true }
     ).lean();
-    if (!bucket) throw error;
+  }
+
+  // No bucket exists yet. Concurrent first requests can race on the unique key;
+  // the loser then increments the active bucket.
+  if (!bucket) {
+    try {
+      const created = await RateLimit.create({
+        key: keyHash,
+        count: 1,
+        expiresAt: resetAt,
+      });
+      bucket = created.toObject();
+    } catch (error) {
+      if (error?.code !== 11000) throw error;
+
+      const retryNow = new Date();
+      bucket = await RateLimit.findOneAndUpdate(
+        { key: keyHash, expiresAt: { $gt: retryNow } },
+        { $inc: { count: 1 } },
+        { new: true }
+      ).lean();
+
+      if (!bucket) {
+        const nextResetAt = new Date(Date.now() + windowMs);
+        bucket = await RateLimit.findOneAndUpdate(
+          { key: keyHash, expiresAt: { $lte: new Date() } },
+          { $set: { count: 1, expiresAt: nextResetAt } },
+          { new: true }
+        ).lean();
+      }
+
+      if (!bucket) throw error;
+    }
   }
 
   return {
