@@ -12,6 +12,7 @@
 - **Error and configuration handling:** duplicate-key responses no longer include raw MongoDB error details. A missing production `MONGODB_URI` fails as a server configuration error instead of silently trying localhost. The session-check route no longer disguises infrastructure failures as ordinary logouts.
 - **Response hardening:** added clickjacking, MIME-sniffing, referrer, camera/microphone/geolocation, and HSTS headers.
 - **UX corrections:** removed the redirect that made the existing `/pos` page inaccessible, and clearly labelled the supplier list as illustrative sample data. Supplier search now filters the displayed rows and the sample metrics match those rows.
+- **Repository hygiene:** removed the generated Playwright report, which included developer-local filesystem paths, and added it to `.gitignore`.
 - **Password handling:** new passwords are limited to 72 UTF-8 bytes to avoid bcrypt's 72-byte truncation issue.
 
 ## Findings that still require product decisions or live verification
@@ -29,12 +30,14 @@
 6. **QR/session destination needs a route check.** Session creation builds QR URLs for `/sessions/<sessionId>`, but the current App Router tree does not contain a matching `/sessions/[sessionId]` page. Verify the intended customer-device flow or implement that route before using QR sessions in production.
 7. **Realtime events are process-local.** The current event bus uses Node's in-process `EventEmitter`. It will not reliably broadcast between different Vercel serverless instances; use a managed pub/sub or hosted realtime service if cross-device live updates are a product requirement.
 8. **Email delivery and recovery need live tests.** SMTP credentials, Gmail/Brevo policy, sender acceptance, spam placement, and provider quotas cannot be proven by lint/build. Exercise signup, resend cooldown, wrong-code attempts, expiry, password reset, and delivery failure in Production with a test mailbox.
+9. **Configured session timeout is not enforced by the auth cookie.** The settings UI stores a timeout value, while the JWT cookie is still issued for seven days. Implement server-side inactivity/session records or remove the misleading setting until it is enforced.
+10. **Offline support is limited.** Draft carts are stored locally, but API-backed inventory/orders and synchronization still require the server. Describe this as offline draft support rather than full offline operation until sync/conflict behavior is implemented.
 
 ### Lower priority / ongoing hardening
 
-9. **Content Security Policy is not enabled.** The added headers cover several baseline controls, but a tailored CSP should be designed and tested with Next.js runtime scripts, styles, camera scanning, and any future third-party assets rather than applying an untested policy.
-10. **No independent security test has been performed.** Before real customer data is stored, test object-level authorization across every ID-based endpoint, cross-tenant access, duplicate/parallel stock operations, request size limits, session expiry, and dependency advisories. The existing Playwright checks cover a subset of these cases.
-11. **Staff-account lifecycle is incomplete.** Public signup correctly creates an owner; staff role assignment needs a deliberate owner-authorized invitation/provisioning flow if multi-user workspaces are required.
+11. **Content Security Policy is not enabled.** The added headers cover several baseline controls, but a tailored CSP should be designed and tested with Next.js runtime scripts, styles, camera scanning, and any future third-party assets rather than applying an untested policy.
+12. **No independent security test has been performed.** Before real customer data is stored, test object-level authorization across every ID-based endpoint, cross-tenant access, duplicate/parallel stock operations, request size limits, session expiry, and dependency advisories. The existing Playwright checks cover a subset of these cases.
+13. **Staff-account lifecycle is incomplete.** Public signup correctly creates an owner; staff role assignment needs a deliberate owner-authorized invitation/provisioning flow if multi-user workspaces are required.
 
 ## Demo account setup
 
