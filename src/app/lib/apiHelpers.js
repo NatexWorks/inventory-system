@@ -110,25 +110,40 @@ export async function rateLimit(key, { limit = 10, windowMs = 60_000 } = {}) {
     $gt: [{ $ifNull: ["$expiresAt", new Date(0)] }, now],
   };
 
-  const bucket = await RateLimit.findOneAndUpdate(
-    { key: keyHash },
-    [
-      {
-        $set: {
-          key: { $literal: keyHash },
-          count: {
-            $cond: [
-              activeWindow,
-              { $add: [{ $ifNull: ["$count", 0] }, 1] },
-              1,
-            ],
-          },
-          expiresAt: { $cond: [activeWindow, "$expiresAt", resetAt] },
+  const updatePipeline = [
+    {
+      $set: {
+        key: { $literal: keyHash },
+        count: {
+          $cond: [
+            activeWindow,
+            { $add: [{ $ifNull: ["$count", 0] }, 1] },
+            1,
+          ],
         },
+        expiresAt: { $cond: [activeWindow, "$expiresAt", resetAt] },
       },
-    ],
-    { upsert: true, new: true }
-  ).lean();
+    },
+  ];
+
+  let bucket;
+  try {
+    bucket = await RateLimit.findOneAndUpdate(
+      { key: keyHash },
+      updatePipeline,
+      { upsert: true, new: true }
+    ).lean();
+  } catch (error) {
+    // Two requests may race to create the same first bucket. Retry atomically
+    // without upsert when the unique key has already been inserted by the other.
+    if (error?.code !== 11000) throw error;
+    bucket = await RateLimit.findOneAndUpdate(
+      { key: keyHash },
+      updatePipeline,
+      { new: true }
+    ).lean();
+    if (!bucket) throw error;
+  }
 
   return {
     allowed: bucket.count <= limit,
