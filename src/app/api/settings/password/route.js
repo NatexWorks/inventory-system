@@ -20,6 +20,7 @@ export async function PUT(request) {
     }
 
     user.passwordHash = await hashPassword(payload.newPassword);
+    user.tokenVersion = Number(user.tokenVersion || 0) + 1;
     await user.save();
     return success("Password updated successfully.");
   } catch (error) {
