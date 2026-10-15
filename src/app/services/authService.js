@@ -190,6 +190,7 @@ export async function resetPassword(input) {
     }
 
     user.passwordHash = await hashPassword(payload.password);
+    user.tokenVersion = Number(user.tokenVersion || 0) + 1;
     await user.save();
 
     resetRecord.usedAt = new Date();
