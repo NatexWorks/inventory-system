@@ -1,6 +1,6 @@
 # Read-only demo account
 
-The login page displays a public demo account. Its credentials are intentionally public, so the account must never share a real customer's workspace.
+The login and signup pages display a public demo account. Its credentials are intentionally public, so the account must never share a real customer's workspace.
 
 ## Credentials
 
