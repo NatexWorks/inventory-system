@@ -214,6 +214,7 @@ export default function AuthForm({ mode = "login", redirectPath = "/", initialEm
                   <MdPersonOutline className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-xl text-slate-400" />
                   <input
                     name="name"
+                    autoComplete="name"
                     value={form.name}
                     onChange={updateField}
                     className={`${baseField} pl-12`}
@@ -231,6 +232,7 @@ export default function AuthForm({ mode = "login", redirectPath = "/", initialEm
                 <input
                   name="email"
                   type="email"
+                  autoComplete="email"
                   value={form.email}
                   onChange={updateField}
                   className={`${baseField} pl-12`}
@@ -279,6 +281,9 @@ export default function AuthForm({ mode = "login", redirectPath = "/", initialEm
                 <input
                   name="password"
                   type="password"
+                  autoComplete={isSignup ? "new-password" : "current-password"}
+                  minLength={isSignup ? 8 : undefined}
+                  maxLength={128}
                   value={form.password}
                   onChange={updateField}
                   className={`${baseField} pl-12`}
