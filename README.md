@@ -1,3 +1,12 @@
+## Public demo account
+
+The login and signup pages display a public, read-only demo account:
+
+- Email: `demo@inventory-system.test`
+- Password: `Demo@12345`
+
+The demo workspace has isolated sample data and the server rejects its authenticated write requests. Run the demo seeding script against the same MongoDB database configured in Vercel before expecting these credentials to work on the deployed site. See [the demo account setup guide](docs/demo-account.md). Never commit or share the MongoDB connection string.
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
 
 ## Getting Started
