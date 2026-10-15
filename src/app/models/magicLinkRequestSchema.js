@@ -9,7 +9,7 @@ const magicLinkRequestSchema = new Schema(
     name: { type: String, default: "", trim: true },
     role: { type: String, enum: ["owner", "staff"], default: "owner", index: true },
     consumedAt: { type: Date, default: null },
-    expiresAt: { type: Date, required: true, index: true },
+    expiresAt: { type: Date, required: true },
   },
   { timestamps: true }
 );
