@@ -9,7 +9,7 @@ export async function GET(request) {
     const auth = await assertAuth(request);
 
     await dbConnect();
-    const user = await User.findById(auth.userId).select("-passwordHash").lean();
+    const user = await User.findById(auth.userId).select("-passwordHash -tokenVersion").lean();
 
     if (!user) {
       return failure("User not found", null, 404);
