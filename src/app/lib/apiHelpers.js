@@ -14,17 +14,46 @@ export class HttpError extends Error {
   }
 }
 
+async function readBoundedRequestBody(request, maxBytes = 64 * 1024) {
+  const contentLength = Number(request.headers.get("content-length") || 0);
+  if (contentLength > maxBytes) {
+    throw new HttpError("Request body is too large.", 413);
+  }
+  if (!request.body) return "";
+
+  const reader = request.body.getReader();
+  const chunks = [];
+  let totalBytes = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      totalBytes += value.byteLength;
+      if (totalBytes > maxBytes) {
+        await reader.cancel();
+        throw new HttpError("Request body is too large.", 413);
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  const combined = new Uint8Array(totalBytes);
+  let offset = 0;
+  for (const chunk of chunks) {
+    combined.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return new TextDecoder().decode(combined);
+}
+
 export async function parseJsonBody(request) {
   try {
     const contentType = request.headers.get("content-type") || "";
     if (contentType.includes("application/json")) {
-      const text = await request.text();
-      if (!text) {
-        return {};
-      }
-      if (Buffer.byteLength(text, "utf8") > 64 * 1024) {
-        throw new HttpError("Request body is too large.", 413);
-      }
+      const text = await readBoundedRequestBody(request);
+      if (!text) return {};
 
       try {
         return JSON.parse(text);
@@ -34,6 +63,9 @@ export async function parseJsonBody(request) {
     }
 
     const url = new URL(request.url);
+    if (url.search.length > 64 * 1024) {
+      throw new HttpError("Request payload is too large.", 413);
+    }
     return Object.fromEntries(url.searchParams.entries());
   } catch (error) {
     if (error instanceof HttpError) throw error;
@@ -41,7 +73,29 @@ export async function parseJsonBody(request) {
   }
 }
 
+function assertSameOriginMutation(request) {
+  if (["GET", "HEAD", "OPTIONS"].includes(request.method)) return;
+  const origin = request.headers.get("origin");
+  if (!origin) return;
+
+  const requestUrl = new URL(request.url);
+  const host = request.headers.get("x-forwarded-host") || request.headers.get("host");
+  const proto = request.headers.get("x-forwarded-proto") || requestUrl.protocol.slice(0, -1);
+  const expectedOrigin = host ? `${proto.split(",")[0].trim()}://${host.split(",")[0].trim()}` : requestUrl.origin;
+
+  let providedOrigin;
+  try {
+    providedOrigin = new URL(origin).origin;
+  } catch {
+    throw new HttpError("Cross-origin request blocked.", 403);
+  }
+  if (providedOrigin !== expectedOrigin) {
+    throw new HttpError("Cross-origin request blocked.", 403);
+  }
+}
+
 export async function assertAuth(request, { roles = null } = {}) {
+  assertSameOriginMutation(request);
   const auth = await getAuthenticatedUser(request);
   if (!auth?.userId) {
     throw new HttpError("Unauthorized", 401);
