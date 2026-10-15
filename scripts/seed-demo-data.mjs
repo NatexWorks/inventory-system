@@ -1,5 +1,5 @@
 import bcrypt from "bcryptjs";
-import { MongoClient, ObjectId } from "mongodb";
+import { MongoClient } from "mongodb";
 
 const MONGODB_URI = process.env.MONGODB_URI;
 const DEMO_EMAIL = "demo@inventory-system.test";
