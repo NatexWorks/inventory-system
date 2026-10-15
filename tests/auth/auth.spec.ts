@@ -46,6 +46,21 @@ test.describe('Authentication', () => {
     await expect(page.getByRole('heading', { name: /Products List/i })).toBeVisible();
   });
 
+  test('shows the read-only demo credentials on login and signup pages', async ({ page }) => {
+    for (const path of ['/login', '/signup']) {
+      await page.goto(path);
+      await expect(page.getByText('Try the demo account')).toBeVisible();
+      await expect(page.getByText('demo@inventory-system.test', { exact: true })).toBeVisible();
+      await expect(page.getByText('Demo@12345', { exact: true })).toBeVisible();
+    }
+
+    await expect(page.getByRole('link', { name: /open demo login/i })).toBeVisible();
+    await page.goto('/login');
+    await page.getByRole('button', { name: /fill demo credentials/i }).click();
+    await expect(page.getByLabel('Email')).toHaveValue('demo@inventory-system.test');
+    await expect(page.getByLabel('Password')).toHaveValue('Demo@12345');
+  });
+
   test('shows maintenance screen instead of API server error details', async ({ page }) => {
     await page.route('**/api/auth/me', async (route) => {
       await route.fulfill({
