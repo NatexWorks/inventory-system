@@ -1,4 +1,6 @@
 import { expect, test } from '@playwright/test';
+import bcrypt from 'bcryptjs';
+import { MongoClient } from 'mongodb';
 import { loadSeedData } from '../fixtures/testData';
 import { expectFailure, expectSuccess, withApiContext } from '../fixtures/api';
 
@@ -54,11 +56,61 @@ test.describe('Auth API', () => {
       });
       await expectSuccess(reset, 200);
 
+      // Password reset must revoke any previously issued session token.
+      const oldSession = await request.get('/api/auth/me');
+      await expectFailure(oldSession, 401);
+
       const relogin = await request.post('/api/auth/login', {
         data: { email, password: 'Password456!' },
       });
       await expectSuccess(relogin, 200);
     });
+  });
+
+
+  test('demo login can read its workspace but cannot mutate it through the API', async () => {
+    if (!process.env.MONGODB_URI) {
+      throw new Error('MONGODB_URI is required for the isolated demo-account security test.');
+    }
+
+    const client = new MongoClient(process.env.MONGODB_URI);
+    await client.connect();
+    const db = client.db(process.env.MONGODB_DB_NAME || undefined);
+    const email = `readonly-demo-${Date.now()}@example.com`;
+    const password = 'DemoReadOnly123!';
+    const now = new Date();
+    const inserted = await db.collection('users').insertOne({
+      name: 'Read-only Demo Test',
+      email,
+      emailVerified: true,
+      phone: '',
+      passwordHash: await bcrypt.hash(password, 12),
+      role: 'owner',
+      isActive: true,
+      isDemo: true,
+      tokenVersion: 0,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    try {
+      await withApiContext(undefined, async (request) => {
+        const login = await request.post('/api/auth/login', { data: { email, password } });
+        await expectSuccess(login, 200);
+
+        const read = await request.get('/api/product?limit=1');
+        await expectSuccess(read, 200);
+
+        const write = await request.post('/api/category', {
+          data: { name: `Blocked Demo Category ${Date.now()}` },
+        });
+        const failure = await expectFailure(write, 403);
+        expect(String(failure.message)).toMatch(/read-only/i);
+      });
+    } finally {
+      await db.collection('users').deleteOne({ _id: inserted.insertedId });
+      await client.close();
+    }
   });
 
   test('identifies unknown recovery emails and limits requests to five per window', async () => {
