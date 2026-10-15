@@ -1,10 +1,9 @@
+import crypto from "node:crypto";
 import { NextResponse } from "next/server";
 import { getAuthenticatedUser } from "./security";
 import dbConnect from "./db";
 import User from "../models/userSchema";
-
-const authBuckets = new Map();
-// Authentication must never fall back to a shared/default workspace.
+import RateLimit from "../models/rateLimitSchema";
 
 export class HttpError extends Error {
   constructor(message, status = 400, errors = null) {
@@ -23,6 +22,9 @@ export async function parseJsonBody(request) {
       if (!text) {
         return {};
       }
+      if (Buffer.byteLength(text, "utf8") > 64 * 1024) {
+        throw new HttpError("Request body is too large.", 413);
+      }
 
       try {
         return JSON.parse(text);
@@ -33,7 +35,8 @@ export async function parseJsonBody(request) {
 
     const url = new URL(request.url);
     return Object.fromEntries(url.searchParams.entries());
-  } catch {
+  } catch (error) {
+    if (error instanceof HttpError) throw error;
     throw new HttpError("Invalid JSON payload", 400);
   }
 }
@@ -44,15 +47,32 @@ export async function assertAuth(request, { roles = null } = {}) {
     throw new HttpError("Unauthorized", 401);
   }
 
-  // Resolve the live account on each protected request so disabled accounts and
-  // changed roles cannot keep using a previously issued JWT.
+  // Resolve the live account on every protected request so disabled accounts,
+  // changed roles, and revoked sessions cannot reuse an old JWT.
   await dbConnect();
-  const user = await User.findById(auth.userId).select("role isActive").lean();
+  const user = await User.findById(auth.userId)
+    .select("role isActive isDemo tokenVersion")
+    .lean();
+
   if (!user || user.isActive === false) {
     throw new HttpError("Unauthorized", 401);
   }
 
-  const currentAuth = { ...auth, role: user.role };
+  if (Number(auth.payload?.tokenVersion || 0) !== Number(user.tokenVersion || 0)) {
+    throw new HttpError("Your session has expired. Please sign in again.", 401);
+  }
+
+  // The public demo account is deliberately read-only. This server-side check
+  // protects every authenticated write API, even when a UI control is bypassed.
+  if (user.isDemo && !["GET", "HEAD", "OPTIONS"].includes(request.method)) {
+    throw new HttpError("The demo account is read-only. Create an account to make changes.", 403);
+  }
+
+  const currentAuth = {
+    ...auth,
+    role: user.role,
+    isDemo: Boolean(user.isDemo),
+  };
   if (roles && !roles.includes(currentAuth.role)) {
     throw new HttpError("Forbidden", 403);
   }
@@ -78,23 +98,54 @@ export function sanitizeSearch(value) {
   return escaped.trim();
 }
 
-export function rateLimit(key, { limit = 10, windowMs = 60_000 } = {}) {
-  const now = Date.now();
-  const bucket = authBuckets.get(key) || { count: 0, resetAt: now + windowMs };
+// Uses a MongoDB atomic update so authentication throttles persist across serverless
+// instances. The original email/IP is never stored in the rate-limit collection.
+export async function rateLimit(key, { limit = 10, windowMs = 60_000 } = {}) {
+  await dbConnect();
 
-  if (now > bucket.resetAt) {
-    bucket.count = 0;
-    bucket.resetAt = now + windowMs;
-  }
+  const now = new Date();
+  const resetAt = new Date(now.getTime() + windowMs);
+  const keyHash = crypto.createHash("sha256").update(String(key)).digest("hex");
+  const activeWindow = {
+    $gt: [{ $ifNull: ["$expiresAt", new Date(0)] }, now],
+  };
 
-  bucket.count += 1;
-  authBuckets.set(key, bucket);
+  const bucket = await RateLimit.findOneAndUpdate(
+    { key: keyHash },
+    [
+      {
+        $set: {
+          key: { $literal: keyHash },
+          count: {
+            $cond: [
+              activeWindow,
+              { $add: [{ $ifNull: ["$count", 0] }, 1] },
+              1,
+            ],
+          },
+          expiresAt: { $cond: [activeWindow, "$expiresAt", resetAt] },
+        },
+      },
+    ],
+    { upsert: true, new: true }
+  ).lean();
 
   return {
     allowed: bucket.count <= limit,
     remaining: Math.max(0, limit - bucket.count),
-    resetAt: bucket.resetAt,
+    resetAt: bucket.expiresAt,
   };
+}
+
+// On Vercel, the platform appends the connecting client address to the forwarded
+// chain. Use the last entry rather than a caller-supplied first entry.
+export function getClientIp(request) {
+  const values = (request.headers.get("x-forwarded-for") || "")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  return values.at(-1) || "unknown";
 }
 
 export function jsonError(message, status = 400, errors = null) {
