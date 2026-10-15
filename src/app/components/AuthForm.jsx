@@ -172,25 +172,33 @@ export default function AuthForm({ mode = "login", redirectPath = "/", initialEm
             <p className="mt-2 text-sm text-slate-500">
               {isSignup ? "New user? Enter your name, email, and password. We will verify your email with a one-time code before creating the account." : "Already have an account? Enter the email and password you registered with. Use “Forgot password?” if you need to reset it."}
             </p>
-            {!isSignup ? (
-              <div className="mt-5 rounded-2xl border border-indigo-200 bg-indigo-50 p-4 text-sm text-slate-700">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="font-semibold text-indigo-900">Try the demo account</p>
-                  <span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-indigo-700">Read-only</span>
+            <div className="mt-5 rounded-2xl border border-indigo-200 bg-indigo-50 p-4 text-sm text-slate-700">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="font-semibold text-indigo-900">Try the demo account</p>
+                <span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-indigo-700">Read-only</span>
+              </div>
+              <p className="mt-2 text-xs leading-5 text-slate-600">
+                Explore sample inventory, orders, and reports. Demo data is isolated from customer workspaces, and changes are disabled.
+                {isSignup ? " You can try it without creating an account or verifying an email." : ""}
+              </p>
+              <dl className="mt-3 grid gap-2 text-sm">
+                <div className="flex flex-wrap gap-2">
+                  <dt className="font-medium text-slate-500">Email:</dt>
+                  <dd className="select-all font-semibold text-slate-900">{DEMO_EMAIL}</dd>
                 </div>
-                <p className="mt-2 text-xs leading-5 text-slate-600">
-                  Explore sample inventory, orders, and reports. Demo data is isolated from customer workspaces; changes are disabled.
-                </p>
-                <dl className="mt-3 grid gap-2 text-sm">
-                  <div className="flex flex-wrap gap-2">
-                    <dt className="font-medium text-slate-500">Email:</dt>
-                    <dd className="select-all font-semibold text-slate-900">{DEMO_EMAIL}</dd>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    <dt className="font-medium text-slate-500">Password:</dt>
-                    <dd className="select-all font-semibold text-slate-900">{DEMO_PASSWORD}</dd>
-                  </div>
-                </dl>
+                <div className="flex flex-wrap gap-2">
+                  <dt className="font-medium text-slate-500">Password:</dt>
+                  <dd className="select-all font-semibold text-slate-900">{DEMO_PASSWORD}</dd>
+                </div>
+              </dl>
+              {isSignup ? (
+                <Link
+                  href={`/login?next=${encodeURIComponent(redirectPath)}`}
+                  className="mt-4 inline-flex w-full items-center justify-center rounded-xl border border-indigo-200 bg-white px-4 py-2.5 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-100"
+                >
+                  Open demo login
+                </Link>
+              ) : (
                 <button
                   type="button"
                   onClick={() => {
@@ -202,8 +210,8 @@ export default function AuthForm({ mode = "login", redirectPath = "/", initialEm
                 >
                   Fill demo credentials
                 </button>
-              </div>
-            ) : null}
+              )}
+            </div>
           </div>
 
           <form onSubmit={handleSubmit} className="mt-8 space-y-4">
