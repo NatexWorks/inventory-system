@@ -178,7 +178,7 @@ export async function rateLimit(key, { limit = 10, windowMs = 60_000 } = {}) {
   let bucket = await RateLimit.findOneAndUpdate(
     { key: keyHash, expiresAt: { $gt: now } },
     { $inc: { count: 1 } },
-    { new: true }
+    { returnDocument: "after" }
   ).lean();
 
   // Atomically recycle an expired bucket if one exists.
@@ -186,7 +186,7 @@ export async function rateLimit(key, { limit = 10, windowMs = 60_000 } = {}) {
     bucket = await RateLimit.findOneAndUpdate(
       { key: keyHash, expiresAt: { $lte: now } },
       { $set: { count: 1, expiresAt: resetAt } },
-      { new: true }
+      { returnDocument: "after" }
     ).lean();
   }
 
@@ -207,7 +207,7 @@ export async function rateLimit(key, { limit = 10, windowMs = 60_000 } = {}) {
       bucket = await RateLimit.findOneAndUpdate(
         { key: keyHash, expiresAt: { $gt: retryNow } },
         { $inc: { count: 1 } },
-        { new: true }
+        { returnDocument: "after" }
       ).lean();
 
       if (!bucket) {
@@ -215,7 +215,7 @@ export async function rateLimit(key, { limit = 10, windowMs = 60_000 } = {}) {
         bucket = await RateLimit.findOneAndUpdate(
           { key: keyHash, expiresAt: { $lte: new Date() } },
           { $set: { count: 1, expiresAt: nextResetAt } },
-          { new: true }
+          { returnDocument: "after" }
         ).lean();
       }
 
