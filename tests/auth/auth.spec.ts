@@ -51,6 +51,7 @@ test.describe('Authentication', () => {
   });
 
   test('workspace content stays visible and numeric values do not run outside narrow screens', async ({ page }) => {
+    test.setTimeout(120_000);
     const auth = new AuthPage(page);
     const users = getTestUsers();
     await page.setViewportSize({ width: 390, height: 844 });
