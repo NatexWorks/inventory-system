@@ -12,7 +12,7 @@ import {
   MdSettings,
   MdWarningAmber,
 } from "react-icons/md";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -28,7 +28,7 @@ export default function Navbar({ handleClick, className = "", user }) {
   const displayName = user?.name || "Inventory User";
   const displayEmail = user?.email || "Signed-in account";
 
-  async function refreshNotifications() {
+  const refreshNotifications = useCallback(async function refreshNotifications() {
     try {
       const response = await fetch("/api/dashboard", {
         credentials: "include",
@@ -51,7 +51,7 @@ export default function Navbar({ handleClick, className = "", user }) {
     } catch {
       setNotifications((current) => ({ ...current, loading: false }));
     }
-  }
+  }, []);
 
   useEffect(() => {
     refreshNotifications();
@@ -62,7 +62,7 @@ export default function Navbar({ handleClick, className = "", user }) {
       window.clearInterval(timer);
       window.removeEventListener("inventory:settings-updated", handleSettingsUpdated);
     };
-  }, []);
+  }, [refreshNotifications]);
 
   useEffect(() => {
     function closeMenus(event) {
