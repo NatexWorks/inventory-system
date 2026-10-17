@@ -80,6 +80,29 @@ test.describe('Auth API', () => {
     });
   });
 
+
+  test('does not allow account email changes through Settings', async () => {
+    await withApiContext(ownerStorageStatePath, async (request) => {
+      const meResponse = await request.get('/api/auth/me');
+      const mePayload = await expectSuccess(meResponse, 200);
+      const originalEmail = mePayload.data.user.email;
+
+      const response = await request.put('/api/settings/profile', {
+        data: {
+          name: mePayload.data.user.name,
+          email: `changed-${Date.now()}@example.com`,
+          phone: mePayload.data.user.phone || '',
+        },
+      });
+      const payload = await expectFailure(response, 400);
+      expect(String(payload.message)).toMatch(/email cannot be changed/i);
+
+      const afterResponse = await request.get('/api/auth/me');
+      const afterPayload = await expectSuccess(afterResponse, 200);
+      expect(afterPayload.data.user.email).toBe(originalEmail);
+    });
+  });
+
   test('demo login can read its workspace but cannot mutate it through the API', async () => {
     if (!process.env.MONGODB_URI) {
       throw new Error('MONGODB_URI is required for the isolated demo-account security test.');

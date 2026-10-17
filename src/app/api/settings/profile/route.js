@@ -11,13 +11,17 @@ export async function PUT(request) {
     const payload = profileSchema.parse(body);
     await dbConnect();
 
-    const email = payload.email.toLowerCase();
-    const duplicate = await User.findOne({ email, _id: { $ne: auth.userId } }).select("_id").lean();
-    if (duplicate) return failure("That email address is already in use.", null, 409);
+    const currentUser = await User.findById(auth.userId).select("email").lean();
+    if (!currentUser) return failure("User not found.", null, 404);
+
+    // Account email is immutable in Settings; changing it requires a separate verified-email flow.
+    if (payload.email.toLowerCase() !== currentUser.email.toLowerCase()) {
+      return failure("Account email cannot be changed from Settings.", null, 400);
+    }
 
     const user = await User.findByIdAndUpdate(
       auth.userId,
-      { $set: { name: payload.name, email, phone: payload.phone || "" } },
+      { $set: { name: payload.name, phone: payload.phone || "" } },
       { new: true, runValidators: true }
     ).select("-passwordHash").lean();
 

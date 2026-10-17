@@ -140,6 +140,14 @@ export default function ClientLayout({ children }) {
     };
   }, [isAuthRoute, router]);
 
+  useEffect(() => {
+    const handleUserUpdated = (event) => {
+      if (event.detail) setUser(event.detail);
+    };
+    window.addEventListener("inventory:user-updated", handleUserUpdated);
+    return () => window.removeEventListener("inventory:user-updated", handleUserUpdated);
+  }, []);
+
   if (siteUnderMaintenance) {
     return <MaintenanceScreen />;
   }
