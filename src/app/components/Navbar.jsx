@@ -53,6 +53,19 @@ export default function Navbar({ handleClick, className = "", user }) {
     try {
       const response = await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
       if (!response.ok) throw new Error("Logout request failed");
+      // Notify every open same-origin tab without storing any credentials.
+      try {
+        localStorage.setItem("inventory:logout", String(Date.now()));
+      } catch {
+        // BroadcastChannel still works when storage is unavailable.
+      }
+      try {
+        const channel = new BroadcastChannel("inventory-auth");
+        channel.postMessage({ type: "logout" });
+        channel.close();
+      } catch {
+        // Older browsers fall back to the storage event above.
+      }
       router.replace("/login");
       router.refresh();
     } catch {
