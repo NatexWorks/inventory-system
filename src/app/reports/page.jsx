@@ -10,6 +10,8 @@ import {
   MdPrint,
   MdSearch,
   MdTrendingUp,
+  MdZoomInMap,
+  MdZoomOutMap,
 } from "react-icons/md";
 
 const PERIODS = [
@@ -117,7 +119,7 @@ function exportChartPng(title, items, labelKey, valueKey, valueFormatter = (valu
 function HorizontalBarChart({ title, subtitle, items, labelKey = "name", valueKey = "revenue", valueFormatter = money, colorClass = "bg-indigo-500", emptyMessage = "No data available for this period.", onExportCsv, onExportPng }) {
   const maximum = Math.max(1, ...items.map((item) => Number(item[valueKey] || 0)));
   return (
-    <section className="rounded-[28px] border border-white/70 bg-white/90 p-5 shadow-[0_24px_70px_rgba(15,23,42,0.08)]">
+    <section className={`rounded-2xl border border-white/70 bg-white/90 p-3 shadow-[0_12px_30px_rgba(15,23,42,0.06)] sm:rounded-[28px] sm:p-5 sm:shadow-[0_24px_70px_rgba(15,23,42,0.08)] ${largeReportView ? "report-card-large" : ""}`}>
       <h2 className="text-lg font-bold text-slate-900">{title}</h2>
       <p className="mt-1 text-sm text-slate-500">{subtitle}</p>
       <div className="mt-3 flex flex-wrap gap-2"><button type="button" onClick={onExportCsv} disabled={!items.length} className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 disabled:opacity-40">Export chart CSV</button><button type="button" onClick={onExportPng} disabled={!items.length} className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 disabled:opacity-40">Export chart PNG</button></div>
@@ -205,6 +207,7 @@ export default function ReportsPage() {
   const [error, setError] = useState("");
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
   const [rowsToShow, setRowsToShow] = useState(10);
+  const [largeReportView, setLargeReportView] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -337,8 +340,8 @@ export default function ReportsPage() {
   }
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-[radial-gradient(circle_at_top_left,_rgba(99,102,241,0.14),_transparent_30%),linear-gradient(180deg,#eff4ff_0%,#f8fbff_45%,#eef2ff_100%)] px-4 py-4 sm:px-6 sm:py-6 lg:px-8">
-      <div className="mx-auto flex max-w-7xl flex-col gap-6">
+    <div data-report-size={largeReportView ? "large" : "normal"} className="report-page min-h-[calc(100vh-4rem)] bg-[radial-gradient(circle_at_top_left,_rgba(99,102,241,0.14),_transparent_30%),linear-gradient(180deg,#eff4ff_0%,#f8fbff_45%,#eef2ff_100%)] px-3 py-3 sm:px-6 sm:py-6 lg:px-8">
+      <div className="report-page-content mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-4 sm:gap-6">
         <section className="rounded-[28px] border border-white/70 bg-white/85 px-5 py-5 shadow-[0_24px_70px_rgba(15,23,42,0.08)]">
           <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
             <div>
@@ -347,6 +350,7 @@ export default function ReportsPage() {
               <p className="mt-2 max-w-2xl text-sm text-slate-500">Analyze sales over time, inspect stock valuation, and export the report you need.</p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
+              <button type="button" onClick={() => setLargeReportView((current) => !current)} aria-pressed={largeReportView} className={`inline-flex items-center gap-2 rounded-2xl border px-3 py-2.5 text-sm font-semibold transition ${largeReportView ? "border-indigo-300 bg-indigo-50 text-indigo-700" : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"}`} title={largeReportView ? "Return to standard report size" : "Enlarge report charts"}>{largeReportView ? <MdZoomOutMap className="text-lg" /> : <MdZoomInMap className="text-lg" />}{largeReportView ? "Standard view" : "Larger view"}</button>
               <button type="button" onClick={exportCsv} disabled={loading} className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-50">
                 <MdFileDownload className="text-lg" /> Export CSV
               </button>
@@ -389,10 +393,10 @@ export default function ReportsPage() {
             <div><h2 className="text-xl font-bold text-slate-900">Sales Trend</h2><p className="mt-1 text-sm text-slate-500">{data?.range?.label || selectedPeriod.label} · completed orders only · Asia/Kolkata timezone</p></div>
             <div className="rounded-2xl bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-700">{money(revenue)} total sales</div>
           </div>
-          <div className="mt-5 rounded-3xl bg-gradient-to-b from-slate-50 to-white p-2 sm:p-4">
+          <div className={`mt-3 rounded-2xl bg-gradient-to-b from-slate-50 to-white p-1.5 sm:mt-5 sm:rounded-3xl sm:p-4 ${largeReportView ? "report-charts-large" : ""}`}>
             {loading ? <div className="h-[320px] animate-pulse rounded-2xl bg-slate-100" /> : buckets.length === 0 ? <div className="flex h-[300px] items-center justify-center text-sm text-slate-500">No sales data available for this period.</div> : (
               <>
-                <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} role="img" aria-label={`Sales revenue graph for ${selectedPeriod.label}`} className="h-[260px] w-full sm:h-[320px]">
+                <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} role="img" aria-label={`Sales revenue graph for ${selectedPeriod.label}`} className={`w-full ${largeReportView ? "h-[360px] sm:h-[460px]" : "h-[240px] sm:h-[320px]"}`}>
                   {[0, 1, 2, 3, 4].map((index) => {
                     const y = padding + ((chartHeight - padding * 2) / 4) * index;
                     const amount = chartMax - (chartSpread / 4) * index;
@@ -409,7 +413,7 @@ export default function ReportsPage() {
           </div>
         </section>
 
-        <section className="grid gap-5 xl:grid-cols-2" aria-label="Sales analysis bar charts">
+        <section className={`grid gap-3 sm:gap-5 xl:grid-cols-2 ${largeReportView ? "report-analysis-large" : ""}`} aria-label="Sales analysis bar charts">
           <HorizontalBarChart
             title="Revenue by Category"
             subtitle={`Completed-order revenue · ${data?.range?.label || selectedPeriod.label}`}
