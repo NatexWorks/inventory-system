@@ -203,5 +203,6 @@ export const settingsSchema = z.object({
   system: z.object({
     offlineMode: z.boolean().default(true),
     sessionTimeoutMinutes: z.coerce.number().int().min(5).max(1440).default(30),
+    tokenExpirationDays: z.coerce.number().int().min(1).max(30).default(7),
   }).default({}),
 });
