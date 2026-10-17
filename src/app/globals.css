@@ -189,3 +189,103 @@ textarea {
     padding: 1rem !important;
   }
 }
+
+
+/* Final mobile fit rules: reduce oversized cards and check content rather than hiding overflow. */
+@media (max-width: 639px) {
+  main,
+  main > div,
+  main section,
+  main article {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  main [class~="p-4"],
+  main [class~="p-5"] {
+    padding: 0.75rem !important;
+  }
+
+  main [class~="px-4"],
+  main [class~="px-5"],
+  main [class~="px-6"] {
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+  }
+
+  main [class~="py-4"],
+  main [class~="py-5"],
+  main [class~="py-6"] {
+    padding-top: 0.75rem !important;
+    padding-bottom: 0.75rem !important;
+  }
+
+  main [class~="gap-4"] {
+    gap: 0.75rem !important;
+  }
+
+  main [class~="gap-5"],
+  main [class~="gap-6"] {
+    gap: 0.875rem !important;
+  }
+
+  main [class~="mt-5"],
+  main [class~="mt-6"] {
+    margin-top: 0.875rem !important;
+  }
+
+  main [class~="rounded-3xl"],
+  main [class~="rounded-[28px]"],
+  main [class~="rounded-[30px]"] {
+    border-radius: 1rem !important;
+  }
+
+  main h2,
+  main h3,
+  main p,
+  main span,
+  main button,
+  main a {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .report-page {
+    padding-left: 0.5rem !important;
+    padding-right: 0.5rem !important;
+  }
+
+  .report-page-content {
+    gap: 0.75rem !important;
+  }
+
+  .report-page-content > section {
+    min-width: 0;
+  }
+
+  .report-page [class~="p-5"],
+  .report-page [class~="p-4"] {
+    padding: 0.75rem !important;
+  }
+
+  .report-page[data-report-size="large"] .report-card-large {
+    padding: 0.75rem !important;
+  }
+
+  .report-page svg[aria-label^="Sales revenue graph"] {
+    height: 220px !important;
+  }
+
+  .report-page .report-charts-large svg[aria-label^="Sales revenue graph"] {
+    height: 300px !important;
+  }
+
+  .report-page table {
+    font-size: 0.75rem;
+  }
+
+  .report-page th,
+  .report-page td {
+    padding: 0.5rem;
+  }
+}
