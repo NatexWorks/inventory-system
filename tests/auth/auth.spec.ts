@@ -56,7 +56,7 @@ test.describe('Authentication', () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await auth.goto('/login');
     await auth.login(users.owner.email, users.owner.password);
-    await expect(page).toHaveURL(/\\/dashboard$/);
+    await expect(page).toHaveURL(/\/dashboard$/);
 
     const routes = ['/dashboard', '/products', '/categories', '/orders', '/suppliers', '/reports', '/settings', '/addProducts'];
     const widths = [320, 360, 390, 430];
