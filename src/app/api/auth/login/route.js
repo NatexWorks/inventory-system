@@ -16,7 +16,7 @@ export async function POST(request) {
     if (!emailLimit.allowed || !ipLimit.allowed) {
       return jsonError("Too many login attempts. Please try again later.", 429);
     }
-    const { user, token } = await loginUser(body);
+    const { user, token, tokenDays } = await loginUser(body);
 
     const response = success("Login successful", {
       user: {
@@ -27,7 +27,7 @@ export async function POST(request) {
       },
     });
 
-    return applyAuthCookie(response, token);
+    return applyAuthCookie(response, token, tokenDays);
   } catch (error) {
     const normalized = normalizeError(error);
     return failure(normalized.message, normalized.errors, normalized.status);
