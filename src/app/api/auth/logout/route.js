@@ -10,8 +10,15 @@ export async function POST(request) {
     const auth = await getAuthenticatedUser(request);
     if (auth?.userId) {
       await dbConnect();
+      const tokenVersion = Number(auth.payload?.tokenVersion || 0);
       await User.updateOne(
-        { _id: auth.userId, tokenVersion: Number(auth.payload?.tokenVersion || 0) },
+        {
+          _id: auth.userId,
+          $or: [
+            { tokenVersion },
+            { tokenVersion: { $exists: false } },
+          ],
+        },
         { $inc: { tokenVersion: 1 } }
       );
     }
