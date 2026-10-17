@@ -32,3 +32,66 @@ body {
   background-color: #c3bcbc;
   border:2px ridge #928e8e;
 }
+
+
+/* Responsive safety net: preserve every field and column without page-level overflow. */
+html {
+  width: 100%;
+  min-width: 320px;
+  overflow-x: clip;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  width: 100%;
+  min-width: 320px;
+  overflow-x: clip;
+}
+
+img,
+video,
+canvas,
+svg {
+  max-width: 100%;
+}
+
+input,
+select,
+textarea {
+  max-width: 100%;
+}
+
+.wrap-safe {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 639px) {
+  /* Wide tables remain complete and scroll inside their own region. */
+  table {
+    max-width: 100%;
+  }
+
+  main {
+    min-width: 0;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    scroll-margin-block: 5rem;
+  }
+
+  /* Avoid iOS auto-zoom when focusing form fields. */
+  input,
+  select,
+  textarea {
+    font-size: max(16px, 1em);
+  }
+
+  /* Keep dialogs and dropdowns inside narrow screens. */
+  [role="dialog"],
+  [role="menu"] {
+    max-width: calc(100vw - 1.5rem);
+  }
+}
