@@ -209,6 +209,7 @@ export async function markOfflineQueueItemFailed(id, status, message) {
     db.close();
   }
   window.dispatchEvent(new CustomEvent("inventory:offline-queue-updated"));
+  window.dispatchEvent(new CustomEvent("inventory:offline-sync-error", { detail: { status, message } }));
 }
 
 let activeSync = null;
