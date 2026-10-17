@@ -13,9 +13,37 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const SITE_URL = "https://inventory-system-mu-puce.vercel.app";
+
 export const metadata = {
-  title: "Inventory SaaS",
-  description: "A dynamic inventory management dashboard with authentication and live workspace data.",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: "Inventory System | Inventory & Stock Management Software",
+    template: "%s | Inventory System",
+  },
+  description: "Manage products, track stock levels, monitor orders and review inventory activity from one simple inventory management dashboard.",
+  applicationName: "Inventory System",
+  keywords: [
+    "inventory management software",
+    "stock management software",
+    "inventory tracking",
+    "product stock management",
+    "inventory management for small businesses",
+    "Inventory System",
+  ],
+  alternates: { canonical: "/" },
+  openGraph: {
+    type: "website",
+    url: SITE_URL,
+    siteName: "Inventory System",
+    title: "Inventory System | Inventory & Stock Management Software",
+    description: "Track products, monitor stock levels and review orders from one straightforward inventory dashboard.",
+  },
+  twitter: {
+    card: "summary",
+    title: "Inventory System | Inventory & Stock Management Software",
+    description: "Track products, monitor stock levels and review orders from one straightforward inventory dashboard.",
+  },
 };
 
 export default function RootLayout({ children }) {
