@@ -102,7 +102,7 @@ export default function Navbar({ handleClick, className = "", user }) {
                 </div>
                 <div className="max-h-96 overflow-y-auto p-2">
                   {notificationsLoading && notifications.length === 0 ? <p className="px-3 py-5 text-sm text-slate-500">Checking alerts…</p> : null}
-                  {!notificationsLoading && notifications.length === 0 ? <p className="px-3 py-5 text-sm text-slate-500">You're all caught up. No low-stock or recent-order alerts.</p> : null}
+                  {!notificationsLoading && notifications.length === 0 ? <p className="px-3 py-5 text-sm text-slate-500">You&apos;re all caught up. No low-stock or recent-order alerts.</p> : null}
                   {notifications.map((item) => (
                     <button key={item.id} type="button" onClick={() => { setNotificationOpen(false); router.push(item.href || "/reports"); }} className="block w-full rounded-xl px-3 py-3 text-left transition hover:bg-slate-50">
                       <span className={`mb-1 inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${item.level === "critical" ? "bg-rose-50 text-rose-700" : item.level === "warning" ? "bg-amber-50 text-amber-700" : "bg-sky-50 text-sky-700"}`}>{item.kind}</span>
