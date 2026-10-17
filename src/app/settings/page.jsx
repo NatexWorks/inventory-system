@@ -185,7 +185,7 @@ export default function SettingsPage() {
           store: { storeName: form.storeName, storeEmail: form.storeEmail, storeAddress: form.storeAddress },
           notifications: { lowStockAlerts: form.lowStockAlerts, orderUpdates: form.orderUpdates, weeklySummary: form.weeklySummary },
           billing: { invoiceEnabled: form.invoiceEnabled, taxPercentage: Number(form.taxPercentage), invoiceFormat: form.invoiceFormat },
-          system: { offlineMode: form.offlineMode, sessionTimeoutMinutes: Number(form.sessionTimeoutMinutes) },
+          system: { offlineMode: form.offlineMode, sessionTimeoutMinutes: Number(form.sessionTimeoutMinutes), tokenExpirationDays: Number(form.tokenExpirationDays) },
         }),
       });
       const payload = await response.json();
