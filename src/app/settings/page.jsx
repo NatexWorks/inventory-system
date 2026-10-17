@@ -106,7 +106,9 @@ export default function SettingsPage() {
       });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload?.message || "Profile update failed");
-      setProfile({ name: payload?.data?.user?.name || profile.name, email: payload?.data?.user?.email || profile.email, phone: payload?.data?.user?.phone || "" });
+      const updatedUser = payload?.data?.user;
+      setProfile({ name: updatedUser?.name || profile.name, email: updatedUser?.email || profile.email, phone: updatedUser?.phone || "" });
+      if (updatedUser) window.dispatchEvent(new CustomEvent("inventory:user-updated", { detail: updatedUser }));
       setMessage("Profile details saved.");
     } catch (err) { setError(err.message || "Profile update failed"); }
     finally { setSavingProfile(false); }
@@ -148,6 +150,7 @@ export default function SettingsPage() {
       const payload = await response.json();
       if (!response.ok) throw new Error(payload?.message || "Settings save failed");
       setMessage("Store, invoice, inventory, and notification settings saved.");
+      window.dispatchEvent(new Event("inventory:settings-updated"));
     } catch (err) { setError(err.message || "Settings save failed"); }
     finally { setSaving(false); }
   }
@@ -178,7 +181,10 @@ export default function SettingsPage() {
         <div className="grid gap-5 xl:grid-cols-2">
           <SectionCard title="Profile" helper="Your personal account details" icon={MdAccountCircle}>
             <Field label="Full Name"><input className={inputClass} autoComplete="name" value={profile.name} onChange={(e) => setProfile({ ...profile, name: e.target.value })} /></Field>
-            <Field label="Email Address"><input className={inputClass} type="email" autoComplete="email" value={profile.email} onChange={(e) => setProfile({ ...profile, email: e.target.value })} /></Field>
+            <Field label="Account Email">
+              <input className={inputClass + " cursor-not-allowed bg-slate-100 text-slate-500"} type="email" autoComplete="email" value={profile.email} readOnly aria-readonly="true" />
+              <span className="mt-2 block text-xs text-slate-500">Account email is locked for security and cannot be changed from Settings.</span>
+            </Field>
             <Field label="Phone Number"><input className={inputClass} type="tel" autoComplete="tel" value={profile.phone} onChange={(e) => setProfile({ ...profile, phone: e.target.value })} /></Field>
             <button type="button" onClick={saveProfile} disabled={savingProfile || loading} className="inline-flex w-fit items-center gap-2 rounded-2xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white disabled:opacity-60"><MdSave />{savingProfile ? "Saving..." : "Save Profile"}</button>
           </SectionCard>
