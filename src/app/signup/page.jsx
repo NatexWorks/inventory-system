@@ -3,7 +3,7 @@ import AuthForm from "@/app/components/AuthForm";
 // Keep signup visually consistent with login by using the shared reference form.
 export default async function SignupPage({ searchParams }) {
   const params = await searchParams;
-  const candidate = typeof params?.next === "string" ? params.next : "/";
+  const candidate = typeof params?.next === "string" ? params.next : "/dashboard";
   const redirectPath = candidate.startsWith("/") && !candidate.startsWith("//") ? candidate : "/";
   const initialEmail = typeof params?.email === "string" ? params.email : "";
   const initialMessage = params?.notice === "account-not-found"
