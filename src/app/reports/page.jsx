@@ -119,7 +119,7 @@ function exportChartPng(title, items, labelKey, valueKey, valueFormatter = (valu
 function HorizontalBarChart({ title, subtitle, items, labelKey = "name", valueKey = "revenue", valueFormatter = money, colorClass = "bg-indigo-500", emptyMessage = "No data available for this period.", onExportCsv, onExportPng, largeView = false }) {
   const maximum = Math.max(1, ...items.map((item) => Number(item[valueKey] || 0)));
   return (
-    <section className={`rounded-2xl border border-white/70 bg-white/90 p-3 shadow-[0_12px_30px_rgba(15,23,42,0.06)] sm:rounded-[28px] sm:p-5 sm:shadow-[0_24px_70px_rgba(15,23,42,0.08)] ${largeReportView ? "report-card-large" : ""}`}>
+    <section className={`rounded-2xl border border-white/70 bg-white/90 p-3 shadow-[0_12px_30px_rgba(15,23,42,0.06)] sm:rounded-[28px] sm:p-5 sm:shadow-[0_24px_70px_rgba(15,23,42,0.08)] ${largeView ? "report-card-large" : ""}`}>
       <h2 className="text-lg font-bold text-slate-900">{title}</h2>
       <p className="mt-1 text-sm text-slate-500">{subtitle}</p>
       <div className="mt-3 flex flex-wrap gap-2"><button type="button" onClick={onExportCsv} disabled={!items.length} className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 disabled:opacity-40">Export chart CSV</button><button type="button" onClick={onExportPng} disabled={!items.length} className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 disabled:opacity-40">Export chart PNG</button></div>
