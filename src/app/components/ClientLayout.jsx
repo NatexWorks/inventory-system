@@ -63,6 +63,7 @@ export default function ClientLayout({ children }) {
   }, []);
 
   // Auth routes render without the app shell so login pages stay clean.
+  const isPublicRoute = pathname === "/";
   const isAuthRoute = ["/login", "/signup", "/forgot-password", "/reset-password"].includes(pathname)
     || pathname.startsWith("/forgot-password/")
     || pathname.startsWith("/reset-password/");
@@ -86,7 +87,7 @@ export default function ClientLayout({ children }) {
   const toggleMobileSidebar = () => setMobileOpen((prev) => !prev);
 
   useEffect(() => {
-    if (isAuthRoute) {
+    if (isAuthRoute || isPublicRoute) {
       return undefined;
     }
 
@@ -138,13 +139,13 @@ export default function ClientLayout({ children }) {
     return () => {
       active = false;
     };
-  }, [isAuthRoute, router]);
+  }, [isAuthRoute, isPublicRoute, router]);
 
   if (siteUnderMaintenance) {
     return <MaintenanceScreen />;
   }
 
-  if (isAuthRoute) {
+  if (isAuthRoute || isPublicRoute) {
     return <>{children}</>;
   }
 
