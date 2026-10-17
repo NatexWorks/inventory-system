@@ -81,6 +81,7 @@ async function main() {
     const productsCollection = db.collection("products");
     const ordersCollection = db.collection("orders");
     const settingsCollection = db.collection("settings");
+    const suppliersCollection = db.collection("suppliers");
     const now = new Date();
     const passwordHash = await bcrypt.hash(DEMO_PASSWORD, 12);
 
@@ -128,6 +129,20 @@ async function main() {
       },
       { upsert: true }
     );
+
+    const sampleSuppliers = [
+      { name: "Tech World Distributors", contact: "+91 98765 43210", email: "sales@techworld.example", address: "Nehru Place, New Delhi", products: 25, rating: 4.9, status: "Active" },
+      { name: "Global Electronics Co.", contact: "+91 98123 45678", email: "orders@globalelec.example", address: "Sector 18, Noida", products: 18, rating: 4.7, status: "Active" },
+      { name: "Office Furnish Hub", contact: "+91 98987 65432", email: "support@officefurnish.example", address: "Kirti Nagar, New Delhi", products: 12, rating: 4.5, status: "Pending" },
+      { name: "AccessPoint Supplies", contact: "+91 90000 11223", email: "hello@accesspoint.example", address: "Indirapuram, Ghaziabad", products: 30, rating: 4.8, status: "Active" },
+    ];
+    for (const supplier of sampleSuppliers) {
+      await suppliersCollection.updateOne(
+        { userId: user._id, name: supplier.name },
+        { $setOnInsert: { ...supplier, userId: user._id, createdAt: now, updatedAt: now } },
+        { upsert: true }
+      );
+    }
 
     const categories = {
       electronics: await upsertCategory(categoriesCollection, user._id, "Electronics", "Laptops, gadgets, and accessories"),
