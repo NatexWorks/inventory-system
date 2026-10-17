@@ -18,7 +18,7 @@ import { usePathname } from "next/navigation";
 export default function Sidebar({ open, handleClick, className = "", user, mobile = false }) {
   // Navigation items are declared in one place so the sidebar is easy to extend.
   const menuItems = [
-    { name: "Dashboard", icon: <MdDashboard />, href: "/" },
+    { name: "Dashboard", icon: <MdDashboard />, href: "/dashboard" },
     { name: "Add Product", icon: <MdAddBox />, href: "/addProducts" },
     { name: "Products", icon: <MdInventory />, href: "/products" },
     { name: "Categories", icon: <MdCategory />, href: "/categories" },
@@ -32,7 +32,7 @@ export default function Sidebar({ open, handleClick, className = "", user, mobil
 
   // Marks the current route so the active section can be highlighted.
   const isActive = (href) => {
-    if (href === "/") return pathname === "/";
+    if (href === "/dashboard") return pathname === "/dashboard" || pathname.startsWith("/dashboard/");
     return pathname.startsWith(href);
   };
 
