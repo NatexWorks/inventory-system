@@ -70,10 +70,10 @@ export default function Navbar({ handleClick, className = "", user }) {
 
   return (
     <>
-      <nav className={`relative flex items-center justify-between gap-3 border-b border-slate-200 bg-white/95 px-4 py-4 shadow-[0_1px_0_rgba(15,23,42,0.03)] backdrop-blur sm:px-6 lg:px-8 ${className}`}>
+      <nav className={`relative flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b border-slate-200 bg-white/95 px-3 py-3 shadow-[0_1px_0_rgba(15,23,42,0.03)] backdrop-blur sm:flex-nowrap sm:gap-3 sm:px-6 sm:py-4 lg:px-8 ${className}`}>
         <div className="min-w-0 max-w-full">
           <span className="flex items-center gap-3">
-            <button type="button" onClick={handleClick} className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 transition hover:border-indigo-200 hover:text-indigo-600 lg:hidden" aria-label="Toggle sidebar"><MdMenu size={24} /></button>
+            <button type="button" onClick={handleClick} className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 transition hover:border-indigo-200 hover:text-indigo-600 lg:hidden" aria-label="Toggle sidebar"><MdMenu size={24} /></button>
             <div className="min-w-0 max-w-full">
               <div className="wrap-safe text-sm font-semibold leading-tight text-slate-500">Welcome back</div>
               <div className="wrap-safe text-lg font-bold leading-tight text-slate-900 sm:truncate sm:whitespace-nowrap">{displayName}</div>
@@ -82,13 +82,13 @@ export default function Navbar({ handleClick, className = "", user }) {
           <p className="mt-1 hidden text-sm text-slate-500 sm:block">Live store activity, inventory movement, and alerts.</p>
         </div>
 
-        <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+        <div className="flex w-full shrink-0 items-center justify-end gap-2 sm:w-auto sm:gap-3">
           <form onSubmit={handleSearchSubmit} className="hidden min-w-0 items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 xl:flex">
             <MdSearch className="text-xl text-slate-400" />
             <input type="text" value={search} placeholder="Search products..." onChange={(e) => setSearch(e.target.value)} className="min-w-0 w-64 bg-transparent text-sm text-slate-700 outline-none placeholder:text-slate-400" />
           </form>
 
-          <div className="relative flex items-center gap-1 rounded-2xl border border-slate-200 bg-white p-1">
+          <div className="relative flex shrink-0 items-center gap-1 rounded-2xl border border-slate-200 bg-white p-1">
             <button type="button" onClick={() => { setNotificationOpen((open) => !open); setAccountOpen(false); }} className="relative inline-flex h-10 w-10 items-center justify-center rounded-xl text-slate-500 transition hover:bg-slate-100 hover:text-slate-900" aria-label={`Notifications${unreadCount ? `, ${unreadCount} alerts` : ""}`} aria-expanded={notificationOpen}>
               <MdNotifications size={22} />
               {unreadCount > 0 ? <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-600 px-1 text-[10px] font-bold leading-none text-white">{unreadCount > 9 ? "9+" : unreadCount}</span> : null}
