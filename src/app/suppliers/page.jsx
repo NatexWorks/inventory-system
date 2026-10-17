@@ -34,6 +34,7 @@ export default function SuppliersPage() {
     }
   }, []);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- Load persisted supplier records on page entry.
   useEffect(() => { loadSuppliers(); }, [loadSuppliers]);
 
   const filteredSuppliers = useMemo(() => suppliers.filter((supplier) =>
