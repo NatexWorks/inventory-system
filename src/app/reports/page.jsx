@@ -84,12 +84,43 @@ function buildChartPath(values, width, height, padding) {
     return `${index === 0 ? "M" : "L"} ${x} ${y}`;
   }).join(" ");
 }
-function HorizontalBarChart({ title, subtitle, items, labelKey = "name", valueKey = "revenue", valueFormatter = money, colorClass = "bg-indigo-500", emptyMessage = "No data available for this period." }) {
+function exportChartPng(title, items, labelKey, valueKey, valueFormatter = (value) => String(value)) {
+  const canvas = document.createElement("canvas");
+  const width = 1200;
+  const rowHeight = 58;
+  const height = Math.max(220, 120 + items.length * rowHeight);
+  canvas.width = width;
+  canvas.height = height;
+  const context = canvas.getContext("2d");
+  if (!context) return;
+  context.fillStyle = "#ffffff"; context.fillRect(0, 0, width, height);
+  context.fillStyle = "#0f172a"; context.font = "bold 30px Arial"; context.fillText(title, 42, 52);
+  const max = Math.max(1, ...items.map((item) => Number(item[valueKey] || 0)));
+  items.forEach((item, index) => {
+    const y = 92 + index * rowHeight;
+    const label = String(item[labelKey] || "Unspecified").slice(0, 42);
+    const value = Number(item[valueKey] || 0);
+    context.fillStyle = "#334155"; context.font = "18px Arial"; context.fillText(label, 42, y + 20);
+    context.fillStyle = "#e2e8f0"; context.fillRect(42, y + 29, 850, 12);
+    context.fillStyle = "#4f46e5"; context.fillRect(42, y + 29, Math.max(0, (value / max) * 850), 12);
+    context.fillStyle = "#0f172a"; context.font = "bold 16px Arial"; context.fillText(String(valueFormatter(value)), 920, y + 38);
+  });
+  canvas.toBlob((blob) => {
+    if (!blob) return;
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url; anchor.download = `${safeFileName(title)}.png`;
+    anchor.click(); URL.revokeObjectURL(url);
+  }, "image/png");
+}
+
+function HorizontalBarChart({ title, subtitle, items, labelKey = "name", valueKey = "revenue", valueFormatter = money, colorClass = "bg-indigo-500", emptyMessage = "No data available for this period.", onExportCsv, onExportPng }) {
   const maximum = Math.max(1, ...items.map((item) => Number(item[valueKey] || 0)));
   return (
     <section className="rounded-[28px] border border-white/70 bg-white/90 p-5 shadow-[0_24px_70px_rgba(15,23,42,0.08)]">
       <h2 className="text-lg font-bold text-slate-900">{title}</h2>
       <p className="mt-1 text-sm text-slate-500">{subtitle}</p>
+      <div className="mt-3 flex flex-wrap gap-2"><button type="button" onClick={onExportCsv} disabled={!items.length} className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 disabled:opacity-40">Export chart CSV</button><button type="button" onClick={onExportPng} disabled={!items.length} className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 disabled:opacity-40">Export chart PNG</button></div>
       {items.length === 0 ? (
         <div className="mt-5 rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-5 text-sm text-slate-500">{emptyMessage}</div>
       ) : (
@@ -173,6 +204,7 @@ export default function ReportsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
+  const [rowsToShow, setRowsToShow] = useState(10);
 
   useEffect(() => {
     let active = true;
@@ -202,6 +234,30 @@ export default function ReportsPage() {
   const selectedPeriod = PERIODS.find((item) => item.value === period) || PERIODS[1];
   const selectedReport = REPORT_TYPES.find((item) => item.value === reportType) || REPORT_TYPES[0];
   const table = useMemo(() => makeReportTable(reportType, data, search, summary?.lowStockThreshold ?? 5), [reportType, data, search, summary?.lowStockThreshold]);
+  useEffect(() => { setRowsToShow(10); }, [reportType, period, search]);
+
+  function exportChartData(title, items, labelKey, valueKey) {
+    if (!items.length) { setError("There is no chart data to export."); return; }
+    downloadCsv(`${safeFileName(title)}-${period}.csv`, [labelKey, valueKey], items.map((item) => ({ [labelKey]: item[labelKey] ?? "", [valueKey]: Number(item[valueKey] || 0) })));
+    setError("");
+  }
+
+  function exportSalesTrendPng() {
+    if (!buckets.length) { setError("There is no sales graph data to export."); return; }
+    const canvas = document.createElement("canvas"); canvas.width = 1400; canvas.height = 560;
+    const context = canvas.getContext("2d"); if (!context) return;
+    context.fillStyle = "#ffffff"; context.fillRect(0, 0, canvas.width, canvas.height);
+    context.fillStyle = "#0f172a"; context.font = "bold 30px Arial"; context.fillText(`Sales Trend — ${selectedPeriod.label}`, 42, 48);
+    const left = 70, top = 90, right = 40, bottom = 70, w = canvas.width - left - right, h = canvas.height - top - bottom;
+    const max = Math.max(1, ...values);
+    context.strokeStyle = "#e2e8f0"; context.lineWidth = 1;
+    for (let i = 0; i <= 4; i++) { const y = top + h * i / 4; context.beginPath(); context.moveTo(left, y); context.lineTo(canvas.width - right, y); context.stroke(); }
+    context.strokeStyle = "#4f46e5"; context.lineWidth = 4; context.beginPath();
+    values.forEach((value, index) => { const x = left + w * index / Math.max(1, values.length - 1); const y = top + h * (1 - value / max); if (index === 0) context.moveTo(x, y); else context.lineTo(x, y); }); context.stroke();
+    context.fillStyle = "#475569"; context.font = "14px Arial";
+    buckets.forEach((item, index) => { if (index === 0 || index === buckets.length - 1 || index % Math.max(1, Math.ceil(buckets.length / 8)) === 0) { const x = left + w * index / Math.max(1, buckets.length - 1); context.fillText(String(item.label || "").slice(0, 14), x - 20, canvas.height - 28); } });
+    canvas.toBlob((blob) => { if (!blob) return; const url = URL.createObjectURL(blob); const anchor = document.createElement("a"); anchor.href = url; anchor.download = `sales-trend-${period}.png`; anchor.click(); URL.revokeObjectURL(url); }, "image/png");
+  }
   const allTimeFilteredCategories = categories.filter((item) => String(item.name || "").toLowerCase().includes(search.toLowerCase()));
   const buckets = data?.salesTrend || [];
   const values = buckets.map((item) => Number(item.revenue || 0));
@@ -411,7 +467,7 @@ export default function ReportsPage() {
             <table className="min-w-full divide-y divide-slate-200 text-left">
               <thead className="bg-slate-50"><tr>{table.headers.map((header) => <th key={header} className="whitespace-nowrap px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">{header}</th>)}</tr></thead>
               <tbody className="divide-y divide-slate-100 bg-white">
-                {table.rows.length === 0 ? <tr><td colSpan={table.headers.length} className="px-4 py-8 text-center text-sm text-slate-500">No records for this report and period.</td></tr> : table.rows.slice(0, 100).map((row, index) => (
+                {table.rows.length === 0 ? <tr><td colSpan={table.headers.length} className="px-4 py-8 text-center text-sm text-slate-500">No records for this report and period.</td></tr> : table.rows.slice(0, rowsToShow).map((row, index) => (
                   <tr key={`${reportType}-${index}`} className="text-sm text-slate-700 hover:bg-slate-50">
                     {table.headers.map((header) => {
                       const value = row[header];
@@ -422,7 +478,7 @@ export default function ReportsPage() {
                 ))}</tbody>
             </table>
           </div>
-          {table.rows.length > 100 ? <p className="mt-3 text-xs text-slate-500">Showing the first 100 rows on screen. Exports include all {table.rows.length.toLocaleString("en-IN")} rows.</p> : null}
+          {table.rows.length > 10 ? <div className="mt-3 flex flex-wrap items-center justify-between gap-3"><p className="text-xs text-slate-500">Showing {Math.min(rowsToShow, table.rows.length).toLocaleString("en-IN")} of {table.rows.length.toLocaleString("en-IN")} entries. Exports include every entry.</p>{rowsToShow < table.rows.length ? <button type="button" onClick={() => setRowsToShow((current) => Math.min(current + 10, table.rows.length))} className="rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-700 hover:bg-indigo-100">View more</button> : <button type="button" onClick={() => setRowsToShow(10)} className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600">Show less</button>}</div> : null}
         </section>
 
         <section className="grid gap-5 xl:grid-cols-2">
