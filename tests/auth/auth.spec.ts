@@ -97,7 +97,7 @@ test.describe('Authentication', () => {
           const issues: Array<{ kind: string; tag: string; text: string; left?: number; right?: number; width?: number; scrollWidth?: number }> = [];
 
           // Check layout boxes and controls, while allowing wide tables to scroll only inside their own scroller.
-          document.querySelectorAll('main section, main article, main h1, main h2, main h3, main p, main button, main a, main input, main select, main textarea, main [role="status"], main [role="alert"], main [class*="overflow-x-auto"]').forEach((element) => {
+          document.querySelectorAll('body section, body article, body h1, body h2, body h3, body p, body button, body a, body input, body select, body textarea, body [role="status"], body [role="alert"], body [class*="overflow-x-auto"]').forEach((element) => {
             if (!visible(element) || horizontalScroller(element)) return;
             const rect = element.getBoundingClientRect();
             if (rect.left < -1 || rect.right > viewport + 1) {
@@ -106,7 +106,7 @@ test.describe('Authentication', () => {
           });
 
           // Check intrinsic overflow in text containers too; overflow-x: clip on the document must not hide the test failure.
-          document.querySelectorAll('main h1, main h2, main h3, main p, main button, main a, main label, main [role="status"], main [role="alert"], main section, main article').forEach((element) => {
+          document.querySelectorAll('body h1, body h2, body h3, body p, body button, body a, body label, body [role="status"], body [role="alert"], body section, body article').forEach((element) => {
             if (!visible(element) || horizontalScroller(element)) return;
             const el = element as HTMLElement;
             if (el.clientWidth > 0 && el.scrollWidth > el.clientWidth + 2) {
@@ -115,7 +115,7 @@ test.describe('Authentication', () => {
           });
 
           // Inspect actual rendered text ranges, including long currency and count values.
-          const walker = document.createTreeWalker(document.querySelector('main') || document.body, NodeFilter.SHOW_TEXT);
+          const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
           let node: Node | null;
           while ((node = walker.nextNode())) {
             const text = node.textContent?.replace(/\\s+/g, ' ').trim() || '';
