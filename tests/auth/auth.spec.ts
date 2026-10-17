@@ -91,7 +91,7 @@ test.describe('Authentication', () => {
     const users = getTestUsers();
     await auth.goto('/login');
     await auth.login(users.owner.email, users.owner.password);
-    await expect(page).toHaveURL(/\\/dashboard$/);
+    await expect(page).toHaveURL(/\/dashboard$/);
 
     await page.route('**/api/dashboard', async (route) => {
       await route.fulfill({
