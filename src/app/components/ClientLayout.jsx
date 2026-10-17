@@ -82,6 +82,62 @@ export default function ClientLayout({ children }) {
   }, [mobileOpen]);
 
 
+
+  // A logout in one tab is broadcast to sibling tabs. Periodic live validation also
+  // catches revocation caused by a logout from another browser/device.
+  useEffect(() => {
+    if (isAuthRoute) return undefined;
+    let active = true;
+    let redirecting = false;
+
+    const redirectToLogin = () => {
+      if (redirecting || !active) return;
+      redirecting = true;
+      setUser(null);
+      setAuthStatus("unauthenticated");
+      const requestedPath = `${window.location.pathname}${window.location.search}`;
+      router.replace(`/login?next=${encodeURIComponent(requestedPath)}`);
+    };
+
+    const handleStorage = (event) => {
+      if (event.key === "inventory:logout") redirectToLogin();
+    };
+    const channel = typeof BroadcastChannel !== "undefined"
+      ? new BroadcastChannel("inventory-auth")
+      : null;
+    const handleBroadcast = (event) => {
+      if (event.data?.type === "logout") redirectToLogin();
+    };
+    channel?.addEventListener("message", handleBroadcast);
+    window.addEventListener("storage", handleStorage);
+
+    const validateSession = async () => {
+      if (document.visibilityState === "hidden" || redirecting) return;
+      try {
+        const response = await fetch("/api/auth/me", {
+          credentials: "include",
+          cache: "no-store",
+        });
+        if (response.status === 401 || response.status === 403) redirectToLogin();
+      } catch {
+        // A temporary network issue must not log the user out.
+      }
+    };
+    const timer = window.setInterval(validateSession, 30000);
+    window.addEventListener("focus", validateSession);
+    document.addEventListener("visibilitychange", validateSession);
+
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+      window.removeEventListener("focus", validateSession);
+      document.removeEventListener("visibilitychange", validateSession);
+      window.removeEventListener("storage", handleStorage);
+      channel?.removeEventListener("message", handleBroadcast);
+      channel?.close();
+    };
+  }, [isAuthRoute, router]);
+
   const toggleDesktopSidebar = () => setOpen((prev) => !prev);
   const toggleMobileSidebar = () => setMobileOpen((prev) => !prev);
 
