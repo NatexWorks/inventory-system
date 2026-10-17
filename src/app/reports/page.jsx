@@ -234,6 +234,7 @@ export default function ReportsPage() {
   const selectedPeriod = PERIODS.find((item) => item.value === period) || PERIODS[1];
   const selectedReport = REPORT_TYPES.find((item) => item.value === reportType) || REPORT_TYPES[0];
   const table = useMemo(() => makeReportTable(reportType, data, search, summary?.lowStockThreshold ?? 5), [reportType, data, search, summary?.lowStockThreshold]);
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- Reset report pagination when its filters change.
   useEffect(() => { setRowsToShow(10); }, [reportType, period, search]);
 
   function exportChartData(title, items, labelKey, valueKey) {
