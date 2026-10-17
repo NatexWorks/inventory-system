@@ -441,7 +441,7 @@ export default function DashboardClient() {
         ))}
       </section>
 
-      <section className="grid gap-5 xl:grid-cols-[1.8fr_1fr]">
+      <section className="grid min-w-0 gap-4 sm:gap-5 xl:grid-cols-[1.8fr_1fr]">
         <SalesChart
           values={chartValues}
           labels={chartLabels}
@@ -451,20 +451,20 @@ export default function DashboardClient() {
         <DonutChart categories={categoryBreakdown} />
       </section>
 
-      <section className="grid gap-5 xl:grid-cols-[1.55fr_1fr]">
-        <div className="rounded-3xl border border-slate-200/80 bg-white p-5 shadow-[0_10px_30px_rgba(15,23,42,0.05)]">
-          <div className="flex items-center justify-between gap-4">
-            <div>
+      <section className="grid min-w-0 gap-4 sm:gap-5 xl:grid-cols-[1.55fr_1fr]">
+        <div className="min-w-0 w-full max-w-full rounded-2xl border border-slate-200/80 bg-white p-3 shadow-[0_10px_30px_rgba(15,23,42,0.05)] sm:rounded-3xl sm:p-5">
+          <div className="flex min-w-0 flex-wrap items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
               <h3 className="wrap-safe text-lg font-semibold leading-tight text-slate-900">Recent Orders</h3>
               <p className="wrap-safe mt-1 text-sm text-slate-500">Latest purchases from customers.</p>
             </div>
-            <button type="button" className="rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-600">
+            <button type="button" className="shrink-0 rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-600">
               View all
             </button>
           </div>
 
-          <div className="mt-5 overflow-x-auto rounded-2xl border border-slate-200">
-            <table className="min-w-full divide-y divide-slate-200 text-left">
+          <div className="mt-4 block w-full min-w-0 max-w-full overflow-x-auto rounded-2xl border border-slate-200 sm:mt-5">
+            <table className="w-max min-w-full divide-y divide-slate-200 text-left">
               <thead className="bg-slate-50">
                 <tr className="text-xs uppercase tracking-wide text-slate-500">
                   <th className="px-4 py-3 font-medium">Order</th>
@@ -491,7 +491,7 @@ export default function DashboardClient() {
           </div>
         </div>
 
-        <div className="rounded-3xl border border-slate-200/80 bg-white p-5 shadow-[0_10px_30px_rgba(15,23,42,0.05)]">
+        <div className="min-w-0 w-full max-w-full rounded-2xl border border-slate-200/80 bg-white p-3 shadow-[0_10px_30px_rgba(15,23,42,0.05)] sm:rounded-3xl sm:p-5">
           <h3 className="wrap-safe text-lg font-semibold leading-tight text-slate-900">Low Stock Alert</h3>
           <p className="wrap-safe mt-1 text-sm text-slate-500">
             {summary?.lowStockAlertsEnabled === false
@@ -499,7 +499,7 @@ export default function DashboardClient() {
               : `Items at or below your threshold of ${summary?.lowStockThreshold ?? 5} units.`}
           </p>
 
-          <div className="mt-5 space-y-3">
+          <div className="mt-4 min-w-0 space-y-3 sm:mt-5">
             {summary?.lowStockAlertsEnabled === false ? (
               <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
                 Turn on Low Stock Alerts in Settings to show these alerts.
@@ -510,15 +510,15 @@ export default function DashboardClient() {
               </div>
             ) : (
               lowStockItems.map((item) => (
-                <div key={item._id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
+                <div key={item._id} className="min-w-0 w-full max-w-full rounded-2xl border border-slate-200 bg-slate-50 p-3 sm:p-4">
+                  <div className="flex min-w-0 flex-wrap items-start justify-between gap-2 sm:gap-3">
+                    <div className="min-w-0 flex-1">
                       <p className="wrap-safe font-medium leading-tight text-slate-900">{item.name}</p>
                       <p className="wrap-safe mt-1 text-sm leading-tight text-slate-500">SKU {item.sku || "N/A"}</p>
                     </div>
-                    <StatusPill status={item.stock <= 0 ? "Out of Stock" : "Low Stock"} />
+                    <div className="shrink-0"><StatusPill status={item.stock <= 0 ? "Out of Stock" : "Low Stock"} /></div>
                   </div>
-                  <div className="mt-3 flex items-center justify-between text-sm">
+                  <div className="mt-3 flex min-w-0 items-center justify-between gap-3 text-sm">
                     <span className="text-slate-500">Remaining stock</span>
                     <span className="font-semibold text-slate-900">{item.stock}</span>
                   </div>
@@ -529,8 +529,8 @@ export default function DashboardClient() {
         </div>
       </section>
 
-      <section className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
-        <div className="rounded-3xl border border-slate-200/80 bg-white p-5 shadow-[0_10px_30px_rgba(15,23,42,0.05)]">
+      <section className="grid min-w-0 gap-4 sm:gap-5 xl:grid-cols-[1.1fr_0.9fr]">
+        <div className="min-w-0 w-full max-w-full rounded-2xl border border-slate-200/80 bg-white p-3 shadow-[0_10px_30px_rgba(15,23,42,0.05)] sm:rounded-3xl sm:p-5">
           <div className="flex items-center justify-between gap-4">
             <div>
           <h3 className="wrap-safe text-lg font-semibold leading-tight text-slate-900">Top Products</h3>
@@ -566,7 +566,7 @@ export default function DashboardClient() {
           </div>
         </div>
 
-        <div className="rounded-3xl border border-slate-200/80 bg-white p-5 shadow-[0_10px_30px_rgba(15,23,42,0.05)]">
+        <div className="min-w-0 w-full max-w-full rounded-2xl border border-slate-200/80 bg-white p-3 shadow-[0_10px_30px_rgba(15,23,42,0.05)] sm:rounded-3xl sm:p-5">
           <h3 className="wrap-safe text-lg font-semibold leading-tight text-slate-900">Quick Actions</h3>
           <p className="wrap-safe mt-1 text-sm text-slate-500">Common actions for inventory management.</p>
 
