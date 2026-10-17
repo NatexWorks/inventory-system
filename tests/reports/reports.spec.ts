@@ -46,4 +46,38 @@ test.describe('Reports', () => {
     await expect(page.getByRole('button', { name: '3 Months' })).toHaveAttribute('aria-pressed', 'true');
     await expect(page.getByText('Last 90 days', { exact: false }).first()).toBeVisible();
   });
+  test('larger report view enlarges charts without moving them outside a phone screen', async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 844 });
+    const reports = new ReportsPage(page);
+    await reports.goto('/reports');
+    await reports.expectHeading(/Reports Dashboard/i);
+
+    const chart = page.locator('svg[aria-label^="Sales revenue graph"]');
+    await expect(chart).toBeVisible();
+    const standardBox = await chart.boundingBox();
+    expect(standardBox).not.toBeNull();
+
+    const zoomToggle = page.getByTestId('report-size-toggle');
+    await expect(zoomToggle).toBeVisible();
+    await expect(zoomToggle).toHaveAttribute('aria-pressed', 'false');
+    const toggleBox = await zoomToggle.boundingBox();
+    expect(toggleBox).not.toBeNull();
+    expect(toggleBox!.x).toBeGreaterThanOrEqual(-1);
+    expect(toggleBox!.x + toggleBox!.width).toBeLessThanOrEqual(321);
+
+    await zoomToggle.click();
+    await expect(zoomToggle).toHaveAttribute('aria-pressed', 'true');
+    await expect(zoomToggle).toHaveAccessibleName('Return to standard report size');
+    await expect.poll(async () => (await chart.boundingBox())?.height || 0).toBeGreaterThan(standardBox!.height + 30);
+
+    const enlargedBox = await chart.boundingBox();
+    expect(enlargedBox).not.toBeNull();
+    expect(enlargedBox!.x).toBeGreaterThanOrEqual(-1);
+    expect(enlargedBox!.x + enlargedBox!.width).toBeLessThanOrEqual(321);
+
+    await zoomToggle.click();
+    await expect(zoomToggle).toHaveAttribute('aria-pressed', 'false');
+    await expect.poll(async () => (await chart.boundingBox())?.height || 0).toBeLessThan(enlargedBox!.height);
+  });
+
 });
