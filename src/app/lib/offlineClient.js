@@ -272,7 +272,11 @@ async function runOfflineQueueSync(fetchImpl) {
       break;
     }
 
-    if (response.status === 401 || response.status === 403 || response.status >= 500) break;
+    if (response.status === 401 || response.status === 403) {
+      window.dispatchEvent(new CustomEvent("inventory:offline-sync-blocked", { detail: { reason: "session-expired" } }));
+      break;
+    }
+    if (response.status >= 500) break;
 
     if (!response.ok) {
       let message = "The server rejected this saved change.";
