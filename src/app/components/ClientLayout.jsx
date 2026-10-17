@@ -207,7 +207,7 @@ export default function ClientLayout({ children }) {
     window.addEventListener("inventory:offline-sync-complete", handleSyncComplete);
     window.addEventListener("inventory:offline-sync-error", handleQueueError);
 
-    setNetworkOnline(navigator.onLine);
+    window.setTimeout(updateOnlineState, 0);
     refreshQueueCount();
     if (navigator.onLine) {
       syncOfflineQueue(originalFetch).catch(() => {}).finally(refreshQueueCount);
