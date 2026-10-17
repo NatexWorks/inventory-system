@@ -46,7 +46,7 @@ test.describe('Authentication', () => {
     await expect(page.getByRole('heading', { name: /Products List/i })).toBeVisible();
 
     await page.getByRole('link', { name: /Dashboard/i }).first().click();
-    await expect(page).toHaveURL(/\\/dashboard$/);
+    await expect(page).toHaveURL(/\/dashboard$/);
     await expect(page.getByRole('heading', { name: /Welcome back/i })).toBeVisible();
   });
 
@@ -56,7 +56,7 @@ test.describe('Authentication', () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await auth.goto('/login');
     await auth.login(users.owner.email, users.owner.password);
-    await expect(page).toHaveURL(/\\/dashboard$/);
+    await expect(page).toHaveURL(/\/dashboard$/);
 
     for (const route of ['/dashboard', '/products', '/categories', '/orders', '/suppliers', '/reports', '/settings', '/addProducts']) {
       await page.goto(route);
