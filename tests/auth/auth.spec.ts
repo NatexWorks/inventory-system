@@ -27,7 +27,7 @@ test.describe('Authentication', () => {
     await auth.goto('/signup');
     await auth.signup(`New Owner ${runId}`, email, 'Password123!');
 
-    await expect(page).toHaveURL(/\/$/);
+    await expect(page).toHaveURL(/\/dashboard$/);
     await auth.expectHeading(/Welcome back/i);
   });
 
