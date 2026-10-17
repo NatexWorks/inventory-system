@@ -1,122 +1,143 @@
 "use client";
 
-import { useState } from "react";
-import { MdLocalShipping, MdMailOutline, MdPhone, MdSearch, MdStar } from "react-icons/md";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { MdAdd, MdDeleteOutline, MdLocalShipping, MdMailOutline, MdPhone, MdSave, MdSearch, MdStar, MdRefresh } from "react-icons/md";
 
-// Static supplier data keeps this page simple until a live backend is connected.
-const suppliers = [
-  { name: "Tech World Distributors", contact: "+91 98765 43210", email: "sales@techworld.com", products: 25, rating: 4.9, status: "Active" },
-  { name: "Global Electronics Co.", contact: "+91 98123 45678", email: "orders@globalelec.com", products: 18, rating: 4.7, status: "Active" },
-  { name: "Office Furnish Hub", contact: "+91 98987 65432", email: "support@officefurnish.com", products: 12, rating: 4.5, status: "Pending" },
-  { name: "AccessPoint Supplies", contact: "+91 90000 11223", email: "hello@accesspoint.com", products: 30, rating: 4.8, status: "Active" },
-];
+const emptySupplier = () => ({ name: "", contact: "", email: "", address: "", products: 0, rating: 0, status: "Active" });
+const inputClass = "w-full min-w-28 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100";
 
-// Reusable summary tile for supplier metrics.
 function StatCard({ title, value, helper, icon: Icon, accent }) {
-  return (
-    <div className="rounded-3xl border border-white/70 bg-white/85 p-4 shadow-[0_16px_35px_rgba(15,23,42,0.08)] backdrop-blur">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-sm font-medium text-slate-500">{title}</p>
-          <p className="mt-2 text-2xl font-bold text-slate-900">{value}</p>
-          <p className="mt-1 text-xs text-slate-500">{helper}</p>
-        </div>
-        <div className={`rounded-2xl p-3 ${accent}`}>
-          <Icon className="text-2xl" />
-        </div>
-      </div>
-    </div>
-  );
+  return <div className="rounded-3xl border border-white/70 bg-white/85 p-4 shadow-[0_16px_35px_rgba(15,23,42,0.08)] backdrop-blur"><div className="flex items-start justify-between gap-3"><div><p className="text-sm font-medium text-slate-500">{title}</p><p className="mt-2 text-2xl font-bold text-slate-900">{value}</p><p className="mt-1 text-xs text-slate-500">{helper}</p></div><div className={`rounded-2xl p-3 ${accent}`}><Icon className="text-2xl" /></div></div></div>;
 }
 
 export default function SuppliersPage() {
-  // This screen is mostly presentational, so the metrics are computed inline.
-  const stats = [
-    { title: "Suppliers", value: "24", helper: "Active partners", icon: MdLocalShipping, accent: "bg-indigo-50 text-indigo-600" },
-    { title: "Avg Rating", value: "4.8", helper: "Across vendor list", icon: MdStar, accent: "bg-amber-50 text-amber-600" },
-    { title: "Pending Review", value: "3", helper: "Awaiting approval", icon: MdMailOutline, accent: "bg-sky-50 text-sky-600" },
-    { title: "Purchase Orders", value: "61", helper: "Linked to suppliers", icon: MdPhone, accent: "bg-emerald-50 text-emerald-600" },
-  ];
+  const [suppliers, setSuppliers] = useState([]);
+  const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [savingId, setSavingId] = useState("");
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+  const [newRow, setNewRow] = useState(null);
 
-  return (
-    <div className="min-h-[calc(100vh-4rem)] bg-[radial-gradient(circle_at_top_left,_rgba(99,102,241,0.14),_transparent_30%),linear-gradient(180deg,#eff4ff_0%,#f8fbff_45%,#eef2ff_100%)] px-4 py-4 sm:px-6 sm:py-6 lg:px-8">
-      <div className="mx-auto flex max-w-7xl flex-col gap-6">
-        <section className="rounded-[28px] border border-white/70 bg-white/80 px-5 py-5 shadow-[0_24px_70px_rgba(15,23,42,0.08)] backdrop-blur">
-          <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-indigo-500">Suppliers</p>
-              <h1 className="mt-2 text-3xl font-bold text-slate-900">Supplier Directory</h1>
-              <p className="mt-2 max-w-2xl text-sm text-slate-500">
-                Keep track of vendor contacts, fulfillment strength, and sourcing reliability.
-              </p>
-              <p role="note" className="mt-3 inline-flex rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-800">
-                Preview only — these are sample records, not your saved supplier data.
-              </p>
-            </div>
+  const loadSuppliers = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const response = await fetch("/api/suppliers", { credentials: "include", cache: "no-store" });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload?.message || "Could not load suppliers.");
+      setSuppliers((payload?.data?.suppliers || []).map((item) => ({ ...item, id: String(item._id), dirty: false })));
+    } catch (err) {
+      setError(err.message || "Could not load suppliers.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-            <div className="flex w-full min-w-0 items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm sm:w-auto">
-              <MdSearch className="text-xl text-slate-400" />
-              <input
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="Search sample suppliers..."
-                aria-label="Search sample suppliers"
-                className="min-w-0 flex-1 bg-transparent text-sm text-slate-700 outline-none placeholder:text-slate-400"
-              />
-            </div>
-          </div>
-        </section>
+  useEffect(() => { loadSuppliers(); }, [loadSuppliers]);
 
-        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {stats.map((stat) => (
-            <StatCard key={stat.title} {...stat} />
-          ))}
-        </section>
+  const filteredSuppliers = useMemo(() => suppliers.filter((supplier) =>
+    [supplier.name, supplier.contact, supplier.email, supplier.address, supplier.status]
+      .some((value) => String(value || "").toLowerCase().includes(search.toLowerCase()))
+  ), [suppliers, search]);
 
-        <section className="rounded-[28px] border border-white/70 bg-white/90 shadow-[0_24px_70px_rgba(15,23,42,0.08)] backdrop-blur">
-          <div className="flex items-center justify-between gap-4 border-b border-slate-100 px-5 py-4">
-            <div>
-              <h2 className="text-lg font-semibold text-slate-900">Suppliers List</h2>
-              <p className="text-sm text-slate-500">Vendors and sourcing partners.</p>
-            </div>
-          </div>
+  function updateRow(id, key, value) {
+    const update = (item) => ({ ...item, [key]: value, dirty: true });
+    if (id === "new") setNewRow((current) => update(current || emptySupplier()));
+    else setSuppliers((current) => current.map((item) => item.id === id ? update(item) : item));
+    setMessage("");
+  }
 
-          <div className="overflow-x-auto">
-            <table className="min-w-full border-separate border-spacing-0">
-              <thead>
-                <tr className="text-left text-xs uppercase tracking-[0.18em] text-slate-400">
-                  <th className="px-5 py-4 font-semibold">Supplier</th>
-                  <th className="px-5 py-4 font-semibold">Contact</th>
-                  <th className="px-5 py-4 font-semibold">Products</th>
-                  <th className="px-5 py-4 font-semibold">Rating</th>
-                  <th className="px-5 py-4 font-semibold">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredSuppliers.map((supplier) => (
-                  <tr key={supplier.name} className="border-t border-slate-100 transition hover:bg-slate-50/80">
-                    <td className="px-5 py-4">
-                      <p className="font-semibold text-slate-900">{supplier.name}</p>
-                      <p className="mt-1 text-sm text-slate-500">{supplier.email}</p>
-                    </td>
-                    <td className="px-5 py-4 text-sm text-slate-700">{supplier.contact}</td>
-                    <td className="px-5 py-4 text-sm text-slate-700">{supplier.products}</td>
-                    <td className="px-5 py-4 text-sm font-semibold text-slate-900">{supplier.rating}</td>
-                    <td className="px-5 py-4">
-                      <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${supplier.status === "Active" ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100" : "bg-amber-50 text-amber-700 ring-1 ring-amber-100"}`}>
-                        {supplier.status}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            {filteredSuppliers.length === 0 ? (
-              <p role="status" className="px-5 py-8 text-center text-sm text-slate-500">No sample suppliers match “{search}”.</p>
-            ) : null}
-          </div>
-        </section>
-      </div>
+  async function saveRow(supplier, isNew = false) {
+    if (!String(supplier.name || "").trim()) {
+      setError("Enter a supplier name before saving.");
+      return;
+    }
+    const id = isNew ? "new" : supplier.id;
+    setSavingId(id);
+    setError("");
+    setMessage("");
+    try {
+      const response = await fetch(isNew ? "/api/suppliers" : `/api/suppliers/${supplier.id}`, {
+        method: isNew ? "POST" : "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: supplier.name, contact: supplier.contact, email: supplier.email, address: supplier.address,
+          products: Number(supplier.products || 0), rating: Number(supplier.rating || 0), status: supplier.status || "Active",
+        }),
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload?.message || "Could not save supplier.");
+      if (isNew) setNewRow(null);
+      await loadSuppliers();
+      setMessage(isNew ? "Supplier added." : "Supplier changes saved.");
+      window.dispatchEvent(new Event("inventory:refresh-notifications"));
+    } catch (err) {
+      setError(err.message || "Could not save supplier.");
+    } finally {
+      setSavingId("");
+    }
+  }
+
+  async function deleteRow(supplier) {
+    if (!window.confirm(`Delete supplier “${supplier.name}”? This cannot be undone.`)) return;
+    setSavingId(supplier.id);
+    setError("");
+    setMessage("");
+    try {
+      const response = await fetch(`/api/suppliers/${supplier.id}`, { method: "DELETE", credentials: "include" });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload?.message || "Could not delete supplier.");
+      setSuppliers((current) => current.filter((item) => item.id !== supplier.id));
+      setMessage("Supplier deleted.");
+    } catch (err) {
+      setError(err.message || "Could not delete supplier.");
+    } finally {
+      setSavingId("");
+    }
+  }
+
+  const activeCount = suppliers.filter((item) => item.status === "Active").length;
+  const averageRating = suppliers.length ? (suppliers.reduce((sum, item) => sum + Number(item.rating || 0), 0) / suppliers.length).toFixed(1) : "0.0";
+  const pendingCount = suppliers.filter((item) => item.status === "Pending").length;
+  const totalProducts = suppliers.reduce((sum, item) => sum + Number(item.products || 0), 0);
+
+  function renderRow(supplier, isNew = false) {
+    const id = isNew ? "new" : supplier.id;
+    return <tr key={id} className="align-top border-t border-slate-100 hover:bg-slate-50/70">
+      <td className="min-w-52 px-3 py-3"><input className={inputClass} aria-label="Supplier name" placeholder="Supplier name" value={supplier.name || ""} onChange={(e) => updateRow(id, "name", e.target.value)} /><input className={`${inputClass} mt-2`} aria-label="Supplier address" placeholder="Address" value={supplier.address || ""} onChange={(e) => updateRow(id, "address", e.target.value)} /></td>
+      <td className="min-w-44 px-3 py-3"><input className={inputClass} aria-label="Supplier phone" placeholder="Phone" value={supplier.contact || ""} onChange={(e) => updateRow(id, "contact", e.target.value)} /><input className={`${inputClass} mt-2`} aria-label="Supplier email" type="email" placeholder="Email" value={supplier.email || ""} onChange={(e) => updateRow(id, "email", e.target.value)} /></td>
+      <td className="w-28 px-3 py-3"><input className={inputClass} aria-label="Product count" type="number" min="0" value={supplier.products ?? 0} onChange={(e) => updateRow(id, "products", e.target.value)} /></td>
+      <td className="w-28 px-3 py-3"><div className="relative"><MdStar className="pointer-events-none absolute left-2 top-2.5 text-amber-500" /><input className={`${inputClass} pl-7`} aria-label="Supplier rating" type="number" min="0" max="5" step="0.1" value={supplier.rating ?? 0} onChange={(e) => updateRow(id, "rating", e.target.value)} /></div></td>
+      <td className="w-36 px-3 py-3"><select className={inputClass} aria-label="Supplier status" value={supplier.status || "Active"} onChange={(e) => updateRow(id, "status", e.target.value)}><option>Active</option><option>Pending</option><option>Inactive</option></select></td>
+      <td className="min-w-32 px-3 py-3"><div className="flex gap-2"><button type="button" onClick={() => saveRow(supplier, isNew)} disabled={savingId === id || (!isNew && !supplier.dirty)} className="inline-flex items-center gap-1 rounded-xl bg-indigo-600 px-3 py-2 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"><MdSave />{savingId === id ? "Saving" : isNew ? "Add" : "Save"}</button>{!isNew ? <button type="button" onClick={() => deleteRow(supplier)} disabled={Boolean(savingId)} aria-label={`Delete ${supplier.name}`} className="inline-flex items-center justify-center rounded-xl border border-rose-200 px-3 py-2 text-rose-600 hover:bg-rose-50 disabled:opacity-40"><MdDeleteOutline /></button> : <button type="button" onClick={() => setNewRow(null)} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600">Cancel</button>}</div></td>
+    </tr>;
+  }
+
+  return <div className="min-h-[calc(100vh-4rem)] bg-[radial-gradient(circle_at_top_left,_rgba(99,102,241,0.14),_transparent_30%),linear-gradient(180deg,#eff4ff_0%,#f8fbff_45%,#eef2ff_100%)] px-4 py-4 sm:px-6 sm:py-6 lg:px-8">
+    <div className="mx-auto flex max-w-7xl flex-col gap-6">
+      <section className="rounded-[28px] border border-white/70 bg-white/80 px-5 py-5 shadow-[0_24px_70px_rgba(15,23,42,0.08)] backdrop-blur">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between"><div><p className="text-xs font-semibold uppercase tracking-[0.28em] text-indigo-500">Suppliers</p><h1 className="mt-2 text-3xl font-bold text-slate-900">Supplier Directory</h1><p className="mt-2 max-w-2xl text-sm text-slate-500">Add, edit, and manage vendor details directly in the table—no separate form required.</p></div>
+          <div className="flex flex-col gap-2 sm:flex-row"><div className="flex min-w-0 items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3"><MdSearch className="text-xl text-slate-400" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search suppliers..." aria-label="Search suppliers" className="min-w-0 flex-1 bg-transparent text-sm text-slate-700 outline-none" /></div><button type="button" onClick={loadSuppliers} className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700"><MdRefresh /> Refresh</button><button type="button" onClick={() => setNewRow(emptySupplier())} disabled={Boolean(newRow)} className="inline-flex items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white disabled:opacity-50"><MdAdd /> Add supplier</button></div>
+        </div>
+      </section>
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard title="Suppliers" value={suppliers.length} helper="Saved suppliers" icon={MdLocalShipping} accent="bg-indigo-50 text-indigo-600" />
+        <StatCard title="Active Partners" value={activeCount} helper="Currently active" icon={MdPhone} accent="bg-emerald-50 text-emerald-600" />
+        <StatCard title="Average Rating" value={averageRating} helper="Out of 5 stars" icon={MdStar} accent="bg-amber-50 text-amber-600" />
+        <StatCard title="Pending Review" value={pendingCount} helper={`${totalProducts} supplier-listed products`} icon={MdMailOutline} accent="bg-sky-50 text-sky-600" />
+      </section>
+      {error ? <div role="alert" className="rounded-2xl border border-rose-200 bg-rose-50 px-5 py-4 text-sm text-rose-700">{error}</div> : null}
+      {message ? <div role="status" className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm text-emerald-700">{message}</div> : null}
+      <section className="rounded-[28px] border border-white/70 bg-white/90 shadow-[0_24px_70px_rgba(15,23,42,0.08)] backdrop-blur">
+        <div className="border-b border-slate-100 px-5 py-4"><h2 className="text-lg font-semibold text-slate-900">Suppliers List</h2><p className="text-sm text-slate-500">Edit values inline and save each row.</p></div>
+        <div className="overflow-x-auto"><table className="min-w-[1050px] w-full border-separate border-spacing-0"><thead><tr className="bg-slate-50 text-left text-xs uppercase tracking-[0.14em] text-slate-400"><th className="px-3 py-4">Supplier / Address</th><th className="px-3 py-4">Contact</th><th className="px-3 py-4">Products</th><th className="px-3 py-4">Rating</th><th className="px-3 py-4">Status</th><th className="px-3 py-4">Actions</th></tr></thead><tbody>
+          {newRow ? renderRow(newRow, true) : null}
+          {loading ? <tr><td colSpan={6} className="px-5 py-10 text-center text-sm text-slate-500">Loading suppliers…</td></tr> : filteredSuppliers.map((supplier) => renderRow(supplier))}
+          {!loading && filteredSuppliers.length === 0 && !newRow ? <tr><td colSpan={6} className="px-5 py-10 text-center text-sm text-slate-500">No suppliers yet. Select “Add supplier” to create the first one.</td></tr> : null}
+        </tbody></table></div>
+      </section>
     </div>
-  );
+  </div>;
 }
