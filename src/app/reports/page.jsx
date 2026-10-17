@@ -150,10 +150,10 @@ function HorizontalBarChart({ title, subtitle, items, labelKey = "name", valueKe
 
 function StatCard({ title, value, helper, icon: Icon, accent }) {
   return (
-    <div className="rounded-3xl border border-white/70 bg-white/90 p-4 shadow-[0_16px_35px_rgba(15,23,42,0.08)] backdrop-blur">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0"><p className="text-sm font-medium text-slate-500">{title}</p><p className="mt-2 break-words text-2xl font-bold text-slate-900">{value}</p><p className="mt-1 text-xs text-slate-500">{helper}</p></div>
-        <div className={`rounded-2xl p-3 ${accent}`}><Icon className="text-2xl" /></div>
+    <div className="min-w-0 rounded-2xl border border-white/70 bg-white/90 p-3 shadow-[0_16px_35px_rgba(15,23,42,0.08)] backdrop-blur sm:rounded-3xl sm:p-4">
+      <div className="flex min-w-0 items-start justify-between gap-2 sm:gap-3">
+        <div className="min-w-0"><p className="text-xs font-medium leading-tight text-slate-500 sm:text-sm">{title}</p><p className="mt-2 break-words text-lg font-bold leading-tight tabular-nums text-slate-900 sm:text-2xl">{value}</p><p className="mt-1 break-words text-xs text-slate-500">{helper}</p></div>
+        <div className={`shrink-0 rounded-xl p-2 sm:rounded-2xl sm:p-3 ${accent}`}><Icon className="text-xl sm:text-2xl" /></div>
       </div>
     </div>
   );
@@ -350,7 +350,7 @@ export default function ReportsPage() {
               <p className="mt-2 max-w-2xl text-sm text-slate-500">Analyze sales over time, inspect stock valuation, and export the report you need.</p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <button type="button" onClick={() => setLargeReportView((current) => !current)} aria-pressed={largeReportView} className={`inline-flex items-center gap-2 rounded-2xl border px-3 py-2.5 text-sm font-semibold transition ${largeReportView ? "border-indigo-300 bg-indigo-50 text-indigo-700" : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"}`} title={largeReportView ? "Return to standard report size" : "Enlarge report charts"}>{largeReportView ? <MdZoomOutMap className="text-lg" /> : <MdZoomInMap className="text-lg" />}{largeReportView ? "Standard view" : "Larger view"}</button>
+              <button type="button" data-testid="report-size-toggle" aria-label={largeReportView ? "Return to standard report size" : "Enlarge report charts"} onClick={() => setLargeReportView((current) => !current)} aria-pressed={largeReportView} className={`inline-flex min-w-0 items-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold transition sm:rounded-2xl sm:px-3 sm:py-2.5 sm:text-sm ${largeReportView ? "border-indigo-300 bg-indigo-50 text-indigo-700" : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"}`} title={largeReportView ? "Return to standard report size" : "Enlarge report charts"}>{largeReportView ? <MdZoomOutMap className="text-lg" /> : <MdZoomInMap className="text-lg" />}{largeReportView ? "Standard view" : "Larger view"}</button>
               <button type="button" onClick={exportCsv} disabled={loading} className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-50">
                 <MdFileDownload className="text-lg" /> Export CSV
               </button>
@@ -381,7 +381,7 @@ export default function ReportsPage() {
         {error ? <div role="alert" className="rounded-3xl border border-rose-200 bg-rose-50 px-5 py-4 text-sm text-rose-700">{error}</div> : null}
         {loading ? <div className="rounded-2xl border border-indigo-100 bg-indigo-50 px-4 py-3 text-sm text-indigo-700">Loading {selectedPeriod.label.toLowerCase()} reports…</div> : null}
 
-        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <section className="grid grid-cols-2 gap-2 sm:grid-cols-2 sm:gap-4 xl:grid-cols-4">
           <StatCard title="Sales Revenue" value={money(revenue)} helper={data?.range?.label || selectedPeriod.label} icon={MdTrendingUp} accent="bg-indigo-50 text-indigo-600" />
           <StatCard title="Completed Orders" value={orders.toLocaleString("en-IN")} helper="Successful sales in this period" icon={MdInsights} accent="bg-sky-50 text-sky-600" />
           <StatCard title="Units Sold" value={unitsSold.toLocaleString("en-IN")} helper="Quantities on completed orders" icon={MdInventory2} accent="bg-emerald-50 text-emerald-600" />
@@ -396,7 +396,7 @@ export default function ReportsPage() {
           <div className={`mt-3 rounded-2xl bg-gradient-to-b from-slate-50 to-white p-1.5 sm:mt-5 sm:rounded-3xl sm:p-4 ${largeReportView ? "report-charts-large" : ""}`}>
             {loading ? <div className="h-[320px] animate-pulse rounded-2xl bg-slate-100" /> : buckets.length === 0 ? <div className="flex h-[300px] items-center justify-center text-sm text-slate-500">No sales data available for this period.</div> : (
               <>
-                <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} role="img" aria-label={`Sales revenue graph for ${selectedPeriod.label}`} className={`w-full ${largeReportView ? "h-[360px] sm:h-[460px]" : "h-[240px] sm:h-[320px]"}`}>
+                <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} role="img" aria-label={`Sales revenue graph for ${selectedPeriod.label}`} className={`w-full ${largeReportView ? "h-[300px] sm:h-[460px]" : "h-[220px] sm:h-[320px]"}`}>
                   {[0, 1, 2, 3, 4].map((index) => {
                     const y = padding + ((chartHeight - padding * 2) / 4) * index;
                     const amount = chartMax - (chartSpread / 4) * index;
