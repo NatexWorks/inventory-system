@@ -12,7 +12,7 @@ test.describe('Authentication', () => {
     await auth.goto('/login');
     await auth.login(users.owner.email, users.owner.password);
 
-    await expect(page).toHaveURL(/\/$/);
+    await expect(page).toHaveURL(/\/dashboard$/);
     await auth.expectHeading(/Welcome back/i);
 
     await page.getByRole('button', { name: /logout/i }).click();
@@ -62,8 +62,8 @@ test.describe('Authentication', () => {
     await expect(page.getByRole('link', { name: /open demo login/i })).toBeVisible();
   });
 
-  test('shows maintenance screen instead of API server error details', async ({ page }) => {
-    await page.route('**/api/auth/me', async (route) => {
+  test('shows a safe dashboard error instead of API server diagnostics', async ({ page }) => {
+    await page.route('**/api/dashboard', async (route) => {
       await route.fulfill({
         status: 500,
         contentType: 'application/json',
@@ -75,10 +75,10 @@ test.describe('Authentication', () => {
       });
     });
 
-    await page.goto('/');
-    await expect(page.getByRole('heading', { name: /Site Under Maintenance/i })).toBeVisible();
+    await page.goto('/dashboard');
+    await expect(page.getByRole('heading', { name: /Welcome back/i })).toBeVisible();
+    await expect(page.getByText('Failed to load dashboard')).toBeVisible();
     await expect(page.getByText(/Set OTP_SECRET|Internal database diagnostic/i)).toHaveCount(0);
-    await expect(page.getByRole('button', { name: /Try again/i })).toBeVisible();
   });
 
   test('shows validation and recovery flows', async ({ page }) => {
