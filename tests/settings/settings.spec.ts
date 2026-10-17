@@ -30,6 +30,7 @@ test.describe('Settings', () => {
     await settings.autoBarcodeGeneration.selectOption('true');
     await settings.offlineMode.selectOption('false');
     await settings.sessionTimeoutMinutes.fill('45');
+    await page.getByLabel('Login Token Expiry').selectOption('14');
 
     await settings.save();
     await settings.expectSaved();
@@ -38,5 +39,6 @@ test.describe('Settings', () => {
     await expect(settings.lowStockThreshold).toHaveValue('4');
     await expect(settings.taxPercentage).toHaveValue('18');
     await expect(settings.sessionTimeoutMinutes).toHaveValue('45');
+    await expect(page.getByLabel('Login Token Expiry')).toHaveValue('14');
   });
 });
