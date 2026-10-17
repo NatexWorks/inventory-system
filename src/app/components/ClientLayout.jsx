@@ -205,7 +205,6 @@ export default function ClientLayout({ children }) {
     window.addEventListener("inventory:offline-queue-updated", updateQueueState);
     window.addEventListener("inventory:offline-sync-blocked", handleSyncBlocked);
     window.addEventListener("inventory:offline-sync-complete", handleSyncComplete);
-    window.addEventListener("inventory:offline-queue-updated", updateQueueState);
     window.addEventListener("inventory:offline-sync-error", handleQueueError);
 
     setNetworkOnline(navigator.onLine);
@@ -285,7 +284,11 @@ export default function ClientLayout({ children }) {
 
         if (active) {
           setUser(currentUser);
-          setAuthStatus(response.headers.get("x-inventory-offline-session") === "true" ? "offline" : "authenticated");
+          const usingOfflineSession = response.headers.get("x-inventory-offline-session") === "true";
+          setAuthStatus(usingOfflineSession ? "offline" : "authenticated");
+          if (!usingOfflineSession && navigator.onLine) {
+            syncOfflineQueue(window.fetch.bind(window)).catch(() => {});
+          }
         }
       } catch {
         try {
