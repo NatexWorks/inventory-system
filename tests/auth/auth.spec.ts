@@ -101,7 +101,7 @@ test.describe('Authentication', () => {
             if (!visible(element) || horizontalScroller(element)) return;
             const rect = element.getBoundingClientRect();
             if (rect.left < -1 || rect.right > viewport + 1) {
-              issues.push({ kind: 'element-outside-viewport', tag: element.tagName.toLowerCase(), text: (element.textContent || '').trim().replace(/\\s+/g, ' ').slice(0, 80), left: Math.round(rect.left), right: Math.round(rect.right), width: viewport });
+              issues.push({ kind: 'element-outside-viewport', tag: element.tagName.toLowerCase(), text: (element.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 80), left: Math.round(rect.left), right: Math.round(rect.right), width: viewport });
             }
           });
 
@@ -110,7 +110,7 @@ test.describe('Authentication', () => {
             if (!visible(element) || horizontalScroller(element)) return;
             const el = element as HTMLElement;
             if (el.clientWidth > 0 && el.scrollWidth > el.clientWidth + 2) {
-              issues.push({ kind: 'content-clipped-inside-element', tag: element.tagName.toLowerCase(), text: (element.textContent || '').trim().replace(/\\s+/g, ' ').slice(0, 80), width: el.clientWidth, scrollWidth: el.scrollWidth });
+              issues.push({ kind: 'content-clipped-inside-element', tag: element.tagName.toLowerCase(), text: (element.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 80), width: el.clientWidth, scrollWidth: el.scrollWidth });
             }
           });
 
@@ -118,7 +118,7 @@ test.describe('Authentication', () => {
           const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
           let node: Node | null;
           while ((node = walker.nextNode())) {
-            const text = node.textContent?.replace(/\\s+/g, ' ').trim() || '';
+            const text = node.textContent?.replace(/\s+/g, ' ').trim() || '';
             const parent = node.parentElement;
             if (!text || !parent || isHidden(parent) || horizontalScroller(parent)) continue;
             const range = document.createRange();
