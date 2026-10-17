@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { MdAccountCircle, MdNotifications, MdOutlineLock, MdOutlineStore, MdPalette, MdSave } from "react-icons/md";
 
 const inputClass = "w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-indigo-300 focus:bg-white";
@@ -46,6 +46,8 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
+  const [autoSaving, setAutoSaving] = useState(false);
+  const skipFirstAutoSave = useRef(true);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
 
@@ -91,6 +93,46 @@ export default function SettingsPage() {
     load();
     return () => { active = false; };
   }, []);
+
+  useEffect(() => {
+    if (loading) return undefined;
+    if (skipFirstAutoSave.current) {
+      skipFirstAutoSave.current = false;
+      return undefined;
+    }
+    const timer = window.setTimeout(async () => {
+      setAutoSaving(true);
+      try {
+        const response = await fetch("/api/settings", {
+          method: "PUT",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            inventory: {
+              lowStockThreshold: Number(form.lowStockThreshold),
+              barcodeRules: form.barcodeRules,
+              autoBarcodeGeneration: Boolean(form.autoBarcodeGeneration),
+              barcodeMode: form.barcodeMode,
+            },
+            store: { storeName: form.storeName, storeEmail: form.storeEmail, storeAddress: form.storeAddress },
+            notifications: { lowStockAlerts: form.lowStockAlerts, orderUpdates: form.orderUpdates, weeklySummary: form.weeklySummary },
+            billing: { invoiceEnabled: form.invoiceEnabled, taxPercentage: Number(form.taxPercentage), invoiceFormat: form.invoiceFormat },
+            system: { offlineMode: form.offlineMode, sessionTimeoutMinutes: Number(form.sessionTimeoutMinutes) },
+          }),
+        });
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload?.message || "Automatic save failed.");
+        setMessage("Changes saved automatically.");
+        setError("");
+        window.dispatchEvent(new Event("inventory:refresh-notifications"));
+      } catch (err) {
+        setError(err.message || "Automatic save failed.");
+      } finally {
+        setAutoSaving(false);
+      }
+    }, 800);
+    return () => window.clearTimeout(timer);
+  }, [form, loading]);
 
   function update(key, value) {
     setForm((current) => ({ ...current, [key]: value }));
@@ -163,7 +205,7 @@ export default function SettingsPage() {
         <section className="rounded-[28px] border border-white/70 bg-white/80 px-5 py-5 shadow-[0_24px_70px_rgba(15,23,42,0.08)]">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div><p className="text-xs font-semibold uppercase tracking-[0.28em] text-indigo-500">Workspace</p><h1 className="mt-2 text-3xl font-bold text-slate-900">Account & Store Settings</h1><p className="mt-2 max-w-2xl text-sm text-slate-500">Saved account details, store information, billing formats, stock alerts, and security.</p></div>
-            <div className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700"><MdPalette className="text-lg text-indigo-600" />{loading ? "Loading settings" : "Connected to backend"}</div>
+            <div className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700"><MdPalette className="text-lg text-indigo-600" />{loading ? "Loading settings" : autoSaving ? "Saving changes…" : "Changes auto-save"}</div>
           </div>
         </section>
 
@@ -178,7 +220,7 @@ export default function SettingsPage() {
         <div className="grid gap-5 xl:grid-cols-2">
           <SectionCard title="Profile" helper="Your personal account details" icon={MdAccountCircle}>
             <Field label="Full Name"><input className={inputClass} autoComplete="name" value={profile.name} onChange={(e) => setProfile({ ...profile, name: e.target.value })} /></Field>
-            <Field label="Email Address"><input className={inputClass} type="email" autoComplete="email" value={profile.email} onChange={(e) => setProfile({ ...profile, email: e.target.value })} /></Field>
+            <Field label="Email Address"><input className={inputClass + " cursor-not-allowed opacity-70"} type="email" autoComplete="email" value={profile.email} readOnly aria-readonly="true" /><span className="mt-1 block text-xs text-slate-500">Account email is fixed for security and cannot be changed here.</span></Field>
             <Field label="Phone Number"><input className={inputClass} type="tel" autoComplete="tel" value={profile.phone} onChange={(e) => setProfile({ ...profile, phone: e.target.value })} /></Field>
             <button type="button" onClick={saveProfile} disabled={savingProfile || loading} className="inline-flex w-fit items-center gap-2 rounded-2xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white disabled:opacity-60"><MdSave />{savingProfile ? "Saving..." : "Save Profile"}</button>
           </SectionCard>
@@ -216,7 +258,7 @@ export default function SettingsPage() {
             <Field label="Offline Mode"><select className={inputClass} value={String(form.offlineMode)} onChange={(e) => update("offlineMode", e.target.value === "true")}><option value="true">Enabled</option><option value="false">Disabled</option></select></Field>
             <Toggle label="Invoice Printing" helper="When disabled, invoice print actions are hidden." checked={form.invoiceEnabled} onChange={(value) => update("invoiceEnabled", value)} />
           </div>
-          <div className="mt-6 flex flex-col gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:items-center sm:justify-between"><p className="text-sm text-slate-500">{loading ? "Loading current settings..." : "Settings are saved to your workspace."}</p><button type="button" onClick={saveSettings} disabled={saving || loading} className="inline-flex items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-200 disabled:opacity-60"><MdSave className="text-lg" />{saving ? "Saving..." : "Save Store & Settings"}</button></div>
+          <div className="mt-6 flex flex-col gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:items-center sm:justify-between"><p className="text-sm text-slate-500">{loading ? "Loading current settings..." : autoSaving ? "Saving changes automatically..." : "Changes auto-save as you edit. You can also use the save button."}</p><button type="button" onClick={saveSettings} disabled={saving || loading} className="inline-flex items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-200 disabled:opacity-60"><MdSave className="text-lg" />{saving ? "Saving..." : "Save Store & Settings"}</button></div>
         </section>
       </div>
     </div>
