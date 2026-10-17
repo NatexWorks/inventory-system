@@ -127,14 +127,62 @@ export async function consumeMagicLinkRequest(email, fallbackName = "") {
 class UnauthorizedError extends Error{
   status=401;
 }
+const DEMO_EMAIL = "demo@inventory-system.test";
+const DEMO_PASSWORD = "Demo@12345";
+
+async function ensureDemoAccount(email, password) {
+  // Only provision the exact documented demo credentials. Never turn an existing
+  // normal account into a demo account or reset a normal user's password.
+  if (email !== DEMO_EMAIL || password !== DEMO_PASSWORD) return;
+
+  let user = await User.findOne({ email: DEMO_EMAIL });
+  if (!user) {
+    const passwordHash = await hashPassword(DEMO_PASSWORD);
+    try {
+      await User.create({
+        name: "Inventory Demo Store",
+        email: DEMO_EMAIL,
+        passwordHash,
+        role: "owner",
+        isActive: true,
+        isDemo: true,
+        emailVerified: true,
+        tokenVersion: 0,
+      });
+    } catch (error) {
+      // Another simultaneous first login may have created this unique email.
+      if (error?.code !== 11000) throw error;
+    }
+    user = await User.findOne({ email: DEMO_EMAIL });
+  }
+
+  if (user?.isDemo) {
+    // Repair a disabled demo account or an outdated demo password hash only.
+    const passwordIsValid = await comparePassword(DEMO_PASSWORD, user.passwordHash);
+    if (!passwordIsValid || !user.isActive) {
+      user.passwordHash = await hashPassword(DEMO_PASSWORD);
+      user.isActive = true;
+      user.emailVerified = true;
+      await user.save();
+    }
+
+    await Settings.findOneAndUpdate(
+      { userId: user._id },
+      { $setOnInsert: { userId: user._id } },
+      { upsert: true, returnDocument: "after" }
+    );
+  }
+}
+
 export async function loginUser(input) {
   await dbConnect();
   const payload = authLoginSchema.parse(input);
   const email = payload.email.toLowerCase();
 
+  await ensureDemoAccount(email, payload.password);
+
   const user = await User.findOne({ email, isActive: true });
   if (!user) {
-    // Error
     throw new UnauthorizedError("Invalid credentials");
   }
 
