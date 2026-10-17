@@ -25,9 +25,10 @@ export function comparePassword(password, hashedPassword) {
   return bcrypt.compare(password, hashedPassword);
 }
 
-// Signs the auth payload into a 7-day session token.
-export function signToken(payload) {
-  return jwt.sign(payload, getJwtSecret(), { expiresIn: "7d" });
+// Signs the auth payload using the account-specific token lifetime (1–30 days).
+export function signToken(payload, expiresInDays = 7) {
+  const days = Number.isInteger(Number(expiresInDays)) ? Math.min(30, Math.max(1, Number(expiresInDays))) : 7;
+  return jwt.sign(payload, getJwtSecret(), { expiresIn: `${days}d` });
 }
 
 // Verifies a signed token. Configuration errors remain server errors; invalid tokens return null.
@@ -52,14 +53,15 @@ export async function readTokenFromCookieStore() {
   return (await cookies()).get(AUTH_COOKIE_NAME)?.value || null;
 }
 
-// Attaches the auth cookie to a response after login or signup.
-export function applyAuthCookie(response, token) {
+// Store only the signed token in an HttpOnly cookie; never store credentials in localStorage.
+export function applyAuthCookie(response, token, expiresInDays = 7) {
+  const days = Number.isInteger(Number(expiresInDays)) ? Math.min(30, Math.max(1, Number(expiresInDays))) : 7;
   response.cookies.set(AUTH_COOKIE_NAME, token, {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     path: "/",
-    maxAge: 60 * 60 * 24 * 7,
+    maxAge: 60 * 60 * 24 * days,
   });
   return response;
 }
