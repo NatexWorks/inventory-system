@@ -70,22 +70,22 @@ function MetricCard({ title, value, change, trend, icon: Icon, accent }) {
   const isPositive = String(change || "").startsWith("+");
 
   return (
-    <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-[0_10px_30px_rgba(15,23,42,0.04)]">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-sm font-medium text-slate-500">{title}</p>
-          <p className="mt-2 text-2xl font-semibold tracking-tight text-slate-900">{value}</p>
+    <div className="min-w-0 rounded-2xl border border-slate-200/80 bg-white p-3 shadow-[0_10px_30px_rgba(15,23,42,0.04)] sm:p-4">
+      <div className="flex min-w-0 items-start justify-between gap-2 sm:gap-3">
+        <div className="min-w-0">
+          <p className="text-xs font-medium leading-tight text-slate-500 sm:text-sm">{title}</p>
+          <p className="mt-2 break-words text-[clamp(0.9rem,4.5vw,1.25rem)] font-semibold leading-tight tracking-tight tabular-nums text-slate-900 sm:text-2xl">{value}</p>
         </div>
-        <div className={`rounded-2xl bg-linear-to-br p-3 ${accent}`}>
-          <Icon className="text-xl" />
+        <div className={`shrink-0 rounded-xl bg-linear-to-br p-2 sm:rounded-2xl sm:p-3 ${accent}`}>
+          <Icon className="text-lg sm:text-xl" />
         </div>
       </div>
-      <div className="mt-4 flex items-center gap-2 text-sm">
+      <div className="mt-3 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs sm:mt-4 sm:text-sm">
         <span className={`inline-flex items-center gap-1 font-semibold ${isPositive ? "text-emerald-600" : "text-rose-600"}`}>
           <FaArrowTrendUp className={isPositive ? "" : "rotate-180"} />
           {change}
         </span>
-        <span className="text-slate-400">{trend}</span>
+        <span className="min-w-0 break-words text-slate-400">{trend}</span>
       </div>
     </div>
   );
@@ -152,7 +152,7 @@ function SalesChart({ values, labels, title, subtitle }) {
             </defs>
           </svg>
 
-          <div className="-mt-2 grid grid-cols-1 gap-2 px-2 text-[11px] text-slate-500 sm:grid-cols-3 xl:grid-cols-6">
+          <div className="-mt-2 grid grid-cols-2 gap-2 px-2 text-[11px] text-slate-500 sm:grid-cols-3 xl:grid-cols-6">
             {labels.map((label) => (
               <span key={label} className="wrap-safe whitespace-normal text-center leading-tight">
                 {label}
@@ -210,12 +210,12 @@ function DonutChart({ categories }) {
   ).items;
 
   return (
-    <div className="rounded-3xl border border-slate-200/80 bg-white p-5 shadow-[0_10px_30px_rgba(15,23,42,0.05)]">
+    <div className="min-w-0 rounded-2xl border border-slate-200/80 bg-white p-3 shadow-[0_10px_30px_rgba(15,23,42,0.05)] sm:rounded-3xl sm:p-5">
       <h3 className="text-lg font-semibold text-slate-900">Top Categories</h3>
       <p className="mt-1 text-sm text-slate-500">Share of category performance from live backend data.</p>
 
-      <div className="mt-5 flex items-center gap-5">
-        <div className="relative mx-auto flex h-56 w-56 max-w-full shrink-0 items-center justify-center sm:h-[55vh] sm:w-[55vw]">
+      <div className="mt-4 flex min-w-0 flex-col gap-4 sm:mt-5 sm:flex-row sm:items-center sm:gap-5">
+        <div className="relative mx-auto flex h-44 w-44 shrink-0 items-center justify-center sm:h-56 sm:w-56">
           <svg viewBox={`0 0 ${size} ${size}`} className="h-full w-full -rotate-90">
             <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="#e2e8f0" strokeWidth={strokeWidth} />
             {segments.map((segment) => (
@@ -435,7 +435,7 @@ export default function DashboardClient() {
         </div>
       </section>
 
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
+      <section className="grid grid-cols-2 gap-2 sm:grid-cols-2 sm:gap-4 xl:grid-cols-3 2xl:grid-cols-6">
         {metricCards.map((metric) => (
           <MetricCard key={metric.title} {...metric} />
         ))}
