@@ -211,7 +211,19 @@ export async function markOfflineQueueItemFailed(id, status, message) {
   window.dispatchEvent(new CustomEvent("inventory:offline-queue-updated"));
 }
 
+let activeSync = null;
+
 export async function syncOfflineQueue(fetchImpl) {
+  if (activeSync) return activeSync;
+  activeSync = runOfflineQueueSync(fetchImpl);
+  try {
+    return await activeSync;
+  } finally {
+    activeSync = null;
+  }
+}
+
+async function runOfflineQueueSync(fetchImpl) {
   if (typeof navigator === "undefined" || !navigator.onLine) return { synced: 0, blocked: false };
   const offlineUser = await getOfflineUser();
   if (!offlineUser?.userId) return { synced: 0, blocked: false };
