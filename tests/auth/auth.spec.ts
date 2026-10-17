@@ -50,23 +50,98 @@ test.describe('Authentication', () => {
     await expect(page.getByRole('heading', { name: /Welcome back/i })).toBeVisible();
   });
 
-  test('workspace pages fit a mobile viewport without horizontal page overflow', async ({ page }) => {
+  test('workspace content stays visible and numeric values do not run outside narrow screens', async ({ page }) => {
     const auth = new AuthPage(page);
     const users = getTestUsers();
     await page.setViewportSize({ width: 390, height: 844 });
     await auth.goto('/login');
     await auth.login(users.owner.email, users.owner.password);
-    await expect(page).toHaveURL(/\/dashboard$/);
+    await expect(page).toHaveURL(/\\/dashboard$/);
 
-    for (const route of ['/dashboard', '/products', '/categories', '/orders', '/suppliers', '/reports', '/settings', '/addProducts']) {
+    const routes = ['/dashboard', '/products', '/categories', '/orders', '/suppliers', '/reports', '/settings', '/addProducts'];
+    const widths = [320, 360, 390, 430];
+
+    for (const route of routes) {
       await page.goto(route);
-      await page.waitForLoadState('domcontentloaded');
-      const dimensions = await page.evaluate(() => ({
-        viewport: document.documentElement.clientWidth,
-        page: document.documentElement.scrollWidth,
-      }));
-      expect(dimensions.page, `${route} overflows mobile viewport: ${dimensions.page}px > ${dimensions.viewport}px`)
-        .toBeLessThanOrEqual(dimensions.viewport + 1);
+      await expect(page.locator('main')).toBeVisible();
+      await page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => {});
+      for (const width of widths) {
+        await page.setViewportSize({ width, height: 844 });
+        await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+
+        const layout = await page.evaluate(() => {
+          const viewport = document.documentElement.clientWidth;
+          const isHidden = (element: Element) => {
+            let current: Element | null = element;
+            while (current) {
+              const style = getComputedStyle(current);
+              if (style.display === 'none' || style.visibility === 'hidden' || current.hasAttribute('inert') || current.getAttribute('aria-hidden') === 'true') return true;
+              current = current.parentElement;
+            }
+            return false;
+          };
+          const horizontalScroller = (element: Element) => {
+            let current = element.parentElement;
+            while (current && current !== document.body) {
+              const style = getComputedStyle(current);
+              if (/(auto|scroll)/.test(style.overflowX) || current.classList.contains('overflow-x-auto')) return current;
+              current = current.parentElement;
+            }
+            return null;
+          };
+          const visible = (element: Element) => {
+            if (isHidden(element)) return false;
+            const rect = element.getBoundingClientRect();
+            return rect.width > 0 && rect.height > 0;
+          };
+          const issues: Array<{ kind: string; tag: string; text: string; left?: number; right?: number; width?: number; scrollWidth?: number }> = [];
+
+          // Check layout boxes and controls, while allowing wide tables to scroll only inside their own scroller.
+          document.querySelectorAll('main section, main article, main h1, main h2, main h3, main p, main button, main a, main input, main select, main textarea, main [role="status"], main [role="alert"], main [class*="overflow-x-auto"]').forEach((element) => {
+            if (!visible(element) || horizontalScroller(element)) return;
+            const rect = element.getBoundingClientRect();
+            if (rect.left < -1 || rect.right > viewport + 1) {
+              issues.push({ kind: 'element-outside-viewport', tag: element.tagName.toLowerCase(), text: (element.textContent || '').trim().replace(/\\s+/g, ' ').slice(0, 80), left: Math.round(rect.left), right: Math.round(rect.right), width: viewport });
+            }
+          });
+
+          // Check intrinsic overflow in text containers too; overflow-x: clip on the document must not hide the test failure.
+          document.querySelectorAll('main h1, main h2, main h3, main p, main button, main a, main label, main [role="status"], main [role="alert"], main section, main article').forEach((element) => {
+            if (!visible(element) || horizontalScroller(element)) return;
+            const el = element as HTMLElement;
+            if (el.clientWidth > 0 && el.scrollWidth > el.clientWidth + 2) {
+              issues.push({ kind: 'content-clipped-inside-element', tag: element.tagName.toLowerCase(), text: (element.textContent || '').trim().replace(/\\s+/g, ' ').slice(0, 80), width: el.clientWidth, scrollWidth: el.scrollWidth });
+            }
+          });
+
+          // Inspect actual rendered text ranges, including long currency and count values.
+          const walker = document.createTreeWalker(document.querySelector('main') || document.body, NodeFilter.SHOW_TEXT);
+          let node: Node | null;
+          while ((node = walker.nextNode())) {
+            const text = node.textContent?.replace(/\\s+/g, ' ').trim() || '';
+            const parent = node.parentElement;
+            if (!text || !parent || isHidden(parent) || horizontalScroller(parent)) continue;
+            const range = document.createRange();
+            range.selectNodeContents(node);
+            for (const rect of Array.from(range.getClientRects())) {
+              if (rect.width < 0.5 || rect.height < 0.5) continue;
+              if (rect.left < -1 || rect.right > viewport + 1) {
+                issues.push({ kind: /[0-9]/.test(text) ? 'number-or-text-outside-viewport' : 'text-outside-viewport', tag: parent.tagName.toLowerCase(), text: text.slice(0, 80), left: Math.round(rect.left), right: Math.round(rect.right), width: viewport });
+                break;
+              }
+            }
+          }
+
+          const pageWidth = document.documentElement.scrollWidth;
+          const bodyWidth = document.body.scrollWidth;
+          if (pageWidth > viewport + 1 || bodyWidth > viewport + 1) {
+            issues.push({ kind: 'document-horizontal-overflow', tag: 'body', text: '', width: viewport, scrollWidth: Math.max(pageWidth, bodyWidth) });
+          }
+          return { viewport, issues: issues.slice(0, 20) };
+        });
+
+        expect(layout.issues, `${route} has clipped or off-screen UI at ${width}px: ${JSON.stringify(layout)}`).toEqual([]);
+      }
     }
   });
 
