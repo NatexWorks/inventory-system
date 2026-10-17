@@ -76,7 +76,7 @@ export async function POST(request) {
     const payload = validateSupplier(input);
     await dbConnect();
     const supplier = await Supplier.create({ ...payload, userId: auth.userId });
-    return success("Supplier created successfully.", { supplier }, 201);
+    return success("Supplier created successfully.", { supplier }, null, 201);
   } catch (error) {
     const normalized = normalizeError(error);
     return failure(normalized.message, normalized.errors, normalized.status);
