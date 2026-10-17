@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import Link from "next/link";
+import { MdDashboard, MdInventory, MdShoppingCart, MdMenu } from "react-icons/md";
 import Sidebar from "./Sidebar";
 import Navbar from "./Navbar";
 import MaintenanceScreen from "./MaintenanceScreen";
@@ -374,7 +376,7 @@ export default function ClientLayout({ children }) {
           </div>
         ) : null}
 
-        <main className="min-w-0 flex-1">
+        <main className="min-w-0 flex-1 pb-20 sm:pb-0">
           {user?.isDemo ? (
             <div role="status" className="flex flex-wrap items-center justify-center gap-2 border-b border-amber-200 bg-amber-50 px-4 py-3 text-center text-sm text-amber-900">
               <strong>Demo mode — read-only.</strong>
