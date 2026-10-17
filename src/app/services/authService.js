@@ -191,11 +191,16 @@ export async function loginUser(input) {
     throw new UnauthorizedError("Invalid credentials");
   }
 
-  const token = signToken(createAuthPayload(user));
+  const settings = await Settings.findOne({ userId: user._id })
+    .select("system.tokenExpirationDays")
+    .lean();
+  const tokenDays = Number(settings?.system?.tokenExpirationDays) || 7;
+  const token = signToken(createAuthPayload(user), tokenDays);
 
   return {
     user: user.toObject(),
     token,
+    tokenDays,
   };
 }
 

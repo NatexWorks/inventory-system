@@ -66,11 +66,13 @@ test.describe('System API', () => {
           system: {
             offlineMode: false,
             sessionTimeoutMinutes: 45,
+            tokenExpirationDays: 14,
           },
         },
       });
       const payload = await expectSuccess(response, 200);
       expect(payload.data.settings.billing.invoiceFormat).toBe('thermal');
+      expect(payload.data.settings.system.tokenExpirationDays).toBe(14);
     });
   });
 });
