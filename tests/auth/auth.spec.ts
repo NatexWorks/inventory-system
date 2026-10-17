@@ -87,6 +87,12 @@ test.describe('Authentication', () => {
   });
 
   test('shows a safe dashboard error instead of API server diagnostics', async ({ page }) => {
+    const auth = new AuthPage(page);
+    const users = getTestUsers();
+    await auth.goto('/login');
+    await auth.login(users.owner.email, users.owner.password);
+    await expect(page).toHaveURL(/\\/dashboard$/);
+
     await page.route('**/api/dashboard', async (route) => {
       await route.fulfill({
         status: 500,
