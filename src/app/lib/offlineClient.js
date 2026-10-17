@@ -139,6 +139,8 @@ const QUEUEABLE_PATH = /^\/api\/(product|category|orders|suppliers|settings|sess
 export function isQueueableMutation(url, method, headers, body) {
   const parsed = new URL(url, window.location.origin);
   if (parsed.origin !== window.location.origin || !QUEUEABLE_PATH.test(parsed.pathname)) return false;
+  // Never persist credential changes or authentication operations for later replay.
+  if (parsed.pathname === "/api/settings/password" || parsed.pathname.startsWith("/api/auth/")) return false;
   if (!["POST", "PUT", "PATCH", "DELETE"].includes(String(method).toUpperCase())) return false;
   if (String(method).toUpperCase() !== "DELETE" && !body) return false;
   if (body && body.length > 1_000_000) return false;
