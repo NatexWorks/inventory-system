@@ -116,7 +116,7 @@ function exportChartPng(title, items, labelKey, valueKey, valueFormatter = (valu
   }, "image/png");
 }
 
-function HorizontalBarChart({ title, subtitle, items, labelKey = "name", valueKey = "revenue", valueFormatter = money, colorClass = "bg-indigo-500", emptyMessage = "No data available for this period.", onExportCsv, onExportPng }) {
+function HorizontalBarChart({ title, subtitle, items, labelKey = "name", valueKey = "revenue", valueFormatter = money, colorClass = "bg-indigo-500", emptyMessage = "No data available for this period.", onExportCsv, onExportPng, largeView = false }) {
   const maximum = Math.max(1, ...items.map((item) => Number(item[valueKey] || 0)));
   return (
     <section className={`rounded-2xl border border-white/70 bg-white/90 p-3 shadow-[0_12px_30px_rgba(15,23,42,0.06)] sm:rounded-[28px] sm:p-5 sm:shadow-[0_24px_70px_rgba(15,23,42,0.08)] ${largeReportView ? "report-card-large" : ""}`}>
@@ -418,6 +418,7 @@ export default function ReportsPage() {
             title="Revenue by Category"
             subtitle={`Completed-order revenue · ${data?.range?.label || selectedPeriod.label}`}
             items={categoryBars}
+            largeView={largeReportView}
             valueKey="revenue"
             valueFormatter={money}
             colorClass="bg-indigo-500"
@@ -427,6 +428,7 @@ export default function ReportsPage() {
             title="Top Products by Revenue"
             subtitle={`Best-performing products · ${data?.range?.label || selectedPeriod.label}`}
             items={productRevenueBars}
+            largeView={largeReportView}
             valueKey="revenue"
             valueFormatter={money}
             colorClass="bg-emerald-500"
@@ -436,6 +438,7 @@ export default function ReportsPage() {
             title="Order Status Distribution"
             subtitle="Orders created in the selected period, including pending and cancelled orders."
             items={orderStatusBars}
+            largeView={largeReportView}
             valueKey="count"
             valueFormatter={(value) => value.toLocaleString("en-IN")}
             colorClass="bg-sky-500"
