@@ -64,6 +64,12 @@ test.describe('Auth API', () => {
         data: { email, password: 'Password456!' },
       });
       await expectSuccess(relogin, 200);
+
+      // Logout revokes the token and protected requests in other tabs/devices fail too.
+      const logout = await request.post('/api/auth/logout');
+      await expectSuccess(logout, 200);
+      const afterLogout = await request.get('/api/auth/me');
+      await expectFailure(afterLogout, 401);
     });
   });
 
