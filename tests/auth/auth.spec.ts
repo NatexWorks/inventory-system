@@ -145,6 +145,40 @@ test.describe('Authentication', () => {
     }
   });
 
+
+  test('report chart zoom stays inside the smallest supported phone viewport', async ({ page }) => {
+    const auth = new AuthPage(page);
+    const users = getTestUsers();
+    await page.setViewportSize({ width: 320, height: 844 });
+    await auth.goto('/login');
+    await auth.login(users.owner.email, users.owner.password);
+
+    await page.goto('/reports');
+    await expect(page.getByRole('heading', { name: /Reports Dashboard/i })).toBeVisible();
+    await page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => {});
+
+    const chart = page.locator('svg[aria-label^="Sales revenue graph"]');
+    await expect(chart).toBeVisible();
+    const standard = await chart.boundingBox();
+    expect(standard).not.toBeNull();
+
+    const zoom = page.getByTestId('report-size-toggle');
+    await expect(zoom).toBeVisible();
+    await expect(zoom).toHaveAttribute('aria-pressed', 'false');
+    await zoom.click();
+    await expect(zoom).toHaveAttribute('aria-pressed', 'true');
+    await expect.poll(async () => (await chart.boundingBox())?.height || 0).toBeGreaterThan(standard!.height + 30);
+
+    const enlarged = await chart.boundingBox();
+    expect(enlarged).not.toBeNull();
+    expect(enlarged!.x).toBeGreaterThanOrEqual(-1);
+    expect(enlarged!.x + enlarged!.width).toBeLessThanOrEqual(321);
+
+    await zoom.click();
+    await expect(zoom).toHaveAttribute('aria-pressed', 'false');
+    await expect.poll(async () => (await chart.boundingBox())?.height || 0).toBeLessThan(enlarged!.height);
+  });
+
   test('shows the read-only demo credentials on login and signup pages', async ({ page }) => {
     await page.goto('/login');
     await expect(page.getByText('Try the demo account')).toBeVisible();
