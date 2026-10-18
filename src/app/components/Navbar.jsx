@@ -5,6 +5,7 @@ import {
 } from "react-icons/md";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { broadcastAuthChange } from "../lib/authBrowserSync";
 
 export default function Navbar({ handleClick, className = "", user }) {
   const router = useRouter();
@@ -53,6 +54,7 @@ export default function Navbar({ handleClick, className = "", user }) {
     try {
       const response = await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
       if (!response.ok) throw new Error("Logout request failed");
+      broadcastAuthChange("logout");
       router.replace("/login");
       router.refresh();
     } catch {
