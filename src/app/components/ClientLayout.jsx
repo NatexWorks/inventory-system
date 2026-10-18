@@ -102,19 +102,24 @@ export default function ClientLayout({ children }) {
         }
 
         if (url.pathname === "/api/auth/me" && response.ok) {
-          try {
-            const payload = await response.clone().json();
-            if (payload?.data?.user) await saveOfflineUser(payload.data.user);
-          } catch {
-            // A malformed auth response must not break the original request.
-          }
+          // Persist the non-secret user profile in the background so IndexedDB
+          // work never delays the caller from receiving the network response.
+          void response.clone().json()
+            .then((payload) => payload?.data?.user ? saveOfflineUser(payload.data.user) : undefined)
+            .catch(() => {
+              // A malformed auth response must not break the original request.
+            });
         } else if (method === "GET" && response.ok && !url.pathname.startsWith("/api/auth/")) {
-          try {
-            const offlineUser = await getOfflineUser();
-            if (offlineUser?.userId) await cacheApiResponse(url.href, response, offlineUser.userId);
-          } catch {
-            // Caching is best-effort; online requests still work without IndexedDB.
-          }
+          // Cache successful reads asynchronously; the online response should be
+          // returned immediately even on slower phones or storage implementations.
+          void (async () => {
+            try {
+              const offlineUser = await getOfflineUser();
+              if (offlineUser?.userId) await cacheApiResponse(url.href, response, offlineUser.userId);
+            } catch {
+              // Caching is best-effort; online requests still work without IndexedDB.
+            }
+          })();
         }
 
         if (url.pathname === "/api/auth/logout" && response.ok) {
@@ -210,11 +215,9 @@ export default function ClientLayout({ children }) {
     window.addEventListener("inventory:offline-sync-complete", handleSyncComplete);
     window.addEventListener("inventory:offline-sync-error", handleQueueError);
 
+    // Initial sync is handled by updateOnlineState to avoid two competing queue checks.
     window.setTimeout(updateOnlineState, 0);
     refreshQueueCount();
-    if (navigator.onLine) {
-      syncOfflineQueue(originalFetch).catch(() => {}).finally(refreshQueueCount);
-    }
 
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("/sw.js").catch(() => {
