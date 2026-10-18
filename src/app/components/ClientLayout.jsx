@@ -7,6 +7,7 @@ import { MdDashboard, MdInventory, MdShoppingCart, MdMenu } from "react-icons/md
 import Sidebar from "./Sidebar";
 import Navbar from "./Navbar";
 import MaintenanceScreen from "./MaintenanceScreen";
+import { subscribeToAuthChanges } from "../lib/authBrowserSync";
 import {
   cacheApiResponse,
   clearOfflineUserAndCache,
@@ -231,6 +232,43 @@ export default function ClientLayout({ children }) {
       window.removeEventListener("inventory:offline-sync-complete", handleSyncComplete);
       window.removeEventListener("inventory:offline-sync-error", handleQueueError);
     };
+  }, []);
+
+  // Keep every same-origin tab/window aligned with the shared HttpOnly session cookie.
+  useEffect(() => {
+    return subscribeToAuthChanges(({ type }) => {
+      if (type === "logout") {
+        void (async () => {
+          try {
+            await clearOfflineUserAndCache();
+          } catch {
+            // Logout must still navigate away if browser storage is unavailable.
+          }
+
+          const currentPath = window.location.pathname;
+          const isAuthPath = ["/login", "/signup", "/forgot-password", "/reset-password"].includes(currentPath)
+            || currentPath.startsWith("/forgot-password/")
+            || currentPath.startsWith("/reset-password/");
+          if (currentPath !== "/" && !isAuthPath) {
+            window.location.replace("/login");
+          }
+        })();
+        return;
+      }
+
+      if (type === "login") {
+        const currentPath = window.location.pathname;
+        const isAuthPath = ["/login", "/signup", "/forgot-password", "/reset-password"].includes(currentPath)
+          || currentPath.startsWith("/forgot-password/")
+          || currentPath.startsWith("/reset-password/");
+        if (currentPath === "/" || isAuthPath) {
+          window.location.replace("/dashboard");
+        } else {
+          // A login may have switched the account attached to the shared cookie.
+          window.location.reload();
+        }
+      }
+    });
   }, []);
 
   const isPublicRoute = pathname === "/";
