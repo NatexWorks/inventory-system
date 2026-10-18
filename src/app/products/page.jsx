@@ -118,6 +118,7 @@ export default function ProductsPage() {
 
     return new URLSearchParams(window.location.search).get("search") || "";
   });
+  const [debouncedSearch, setDebouncedSearch] = useState(search);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -169,7 +170,13 @@ export default function ProductsPage() {
     return () => { active = false; };
   }, []);
 
-  // Refetch products whenever the page number or search query changes.
+  // Debounce free-text search so typing does not fire one request per keypress.
+  useEffect(() => {
+    const timeout = window.setTimeout(() => setDebouncedSearch(search), 250);
+    return () => window.clearTimeout(timeout);
+  }, [search]);
+
+  // Refetch products whenever the page number or settled search query changes.
   useEffect(() => {
     let active = true;
 
@@ -177,7 +184,7 @@ export default function ProductsPage() {
       try {
         setLoading(true);
         setError("");
-        const data = await fetchProducts({ page, search, limit: pageSize });
+        const data = await fetchProducts({ page, search: debouncedSearch, limit: pageSize });
 
         if (!active) {
           return;
@@ -204,7 +211,7 @@ export default function ProductsPage() {
     return () => {
       active = false;
     };
-  }, [page, search, pageSize]);
+  }, [page, debouncedSearch, pageSize]);
 
   const stats = useMemo(() => {
     // Derived metrics are computed from the current product list.
@@ -702,34 +709,42 @@ export default function ProductsPage() {
                         <button
                           type="button"
                           onClick={() => openBarcodeEditor(product)}
-                          className="inline-flex items-center gap-2 rounded-2xl border border-emerald-200 bg-white px-4 py-2 text-sm font-semibold text-emerald-600"
+                          title={`Manage barcodes for ${product.name}`}
+                          aria-label={`Manage barcodes for ${product.name}`}
+                          className="inline-flex h-10 w-10 items-center justify-center gap-0 rounded-2xl border border-emerald-200 bg-white px-2 py-2 text-sm font-semibold text-emerald-600 sm:h-auto sm:w-auto sm:gap-2 sm:px-4"
                         >
-                          <MdAdd />
-                          Barcodes
+                          <MdAdd className="text-lg" />
+                          <span className="hidden sm:inline">Barcodes</span>
                         </button>
                         <button
                           type="button"
                           onClick={() => openBarcodeScanner(product)}
-                          className="inline-flex items-center gap-2 rounded-2xl border border-indigo-200 bg-white px-4 py-2 text-sm font-semibold text-indigo-600"
+                          title={`Scan barcode for ${product.name}`}
+                          aria-label={`Scan barcode for ${product.name}`}
+                          className="inline-flex h-10 w-10 items-center justify-center gap-0 rounded-2xl border border-indigo-200 bg-white px-2 py-2 text-sm font-semibold text-indigo-600 sm:h-auto sm:w-auto sm:gap-2 sm:px-4"
                         >
-                          <MdOutlineQrCodeScanner />
-                          Scan
+                          <MdOutlineQrCodeScanner className="text-lg" />
+                          <span className="hidden sm:inline">Scan</span>
                         </button>
                         <button
                           type="button"
                           onClick={() => router.push(`/addProducts?id=${product._id}`)}
-                          className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700"
+                          title={`Edit ${product.name}`}
+                          aria-label={`Edit ${product.name}`}
+                          className="inline-flex h-10 w-10 items-center justify-center gap-0 rounded-2xl border border-slate-200 bg-white px-2 py-2 text-sm font-semibold text-slate-700 sm:h-auto sm:w-auto sm:gap-2 sm:px-4"
                         >
-                          <MdEdit />
-                          Edit
+                          <MdEdit className="text-lg" />
+                          <span className="hidden sm:inline">Edit</span>
                         </button>
                         <button
                           type="button"
                           onClick={() => handleDelete(product._id)}
-                          className="inline-flex items-center gap-2 rounded-2xl border border-rose-200 bg-white px-4 py-2 text-sm font-semibold text-rose-600"
+                          title={`Delete ${product.name}`}
+                          aria-label={`Delete ${product.name}`}
+                          className="inline-flex h-10 w-10 items-center justify-center gap-0 rounded-2xl border border-rose-200 bg-white px-2 py-2 text-sm font-semibold text-rose-600 sm:h-auto sm:w-auto sm:gap-2 sm:px-4"
                         >
-                          <MdDelete />
-                          Delete
+                          <MdDelete className="text-lg" />
+                          <span className="hidden sm:inline">Delete</span>
                         </button>
                       </div>
                     </article>
