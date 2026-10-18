@@ -682,11 +682,11 @@ export default function BarcodeCameraScanner({ onScan, onStatus, className = "" 
     : status.message;
 
   return (
-    <div className={`rounded-3xl border border-slate-200 bg-white ${className}`}>
-      <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+    <div className={`min-w-0 max-w-full rounded-3xl border border-slate-200 bg-white ${className}`}>
+      <div className="flex min-w-0 flex-col gap-3 border-b border-slate-100 px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-4">
         <div className="flex items-center gap-2">
           <MdCameraAlt className="text-lg text-indigo-600" />
-          <h3 className="font-semibold text-slate-900">Camera Scanner</h3>
+          <h3 className="min-w-0 break-words font-semibold text-slate-900">Camera Scanner</h3>
         </div>
         <div className="flex items-center gap-2">
           <button
