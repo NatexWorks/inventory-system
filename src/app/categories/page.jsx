@@ -283,15 +283,15 @@ export default function CategoriesPage() {
 
         <section className="grid gap-5 xl:grid-cols-[0.9fr_1.1fr]">
           <div className="rounded-[28px] border border-white/70 bg-white/90 p-5 shadow-[0_24px_70px_rgba(15,23,42,0.08)] backdrop-blur">
-            <div className="flex items-center justify-between">
-              <div>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="min-w-0 flex-1">
                 <h2 className="text-lg font-semibold text-slate-900">{editingId ? "Edit Category" : "Create Category"}</h2>
                 <p className="text-sm text-slate-500">Categories update the product dropdown automatically.</p>
               </div>
               <button
                 type="button"
                 onClick={resetForm}
-                className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700"
+                className="shrink-0 whitespace-nowrap rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700"
               >
                 Reset
               </button>
