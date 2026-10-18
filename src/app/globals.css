@@ -107,6 +107,22 @@ input, select, textarea { max-width: 100%; }
   .app-main-content [class~="rounded-[28px]"],
   .app-main-content [class~="rounded-[30px]"] { border-radius: 1rem !important; }
 
+  .app-main-content [class*="flex"] > *,
+  .app-main-content [class*="grid"] > * {
+    min-width: 0;
+  }
+
+  .app-main-content h1,
+  .app-main-content h2,
+  .app-main-content h3,
+  .app-main-content p,
+  .app-main-content label,
+  .app-main-content [role="status"],
+  .app-main-content [role="alert"] {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
   .app-main-content { width: 100%; }
   .app-main-content button,
   .app-main-content a[role="button"],
