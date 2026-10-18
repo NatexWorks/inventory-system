@@ -23,6 +23,10 @@ export default function Navbar({ handleClick, className = "", user }) {
 
   useEffect(() => {
     let active = true;
+    let intervalId = null;
+    let timeoutId = null;
+    let idleId = null;
+
     async function loadNotifications() {
       try {
         setNotificationsLoading(true);
@@ -36,16 +40,31 @@ export default function Navbar({ handleClick, className = "", user }) {
         if (active) setNotificationsLoading(false);
       }
     }
-    loadNotifications();
-    const timer = window.setInterval(loadNotifications, 60000);
-    const onRefresh = () => loadNotifications();
+
+    const onRefresh = () => {
+      if (notificationOpen) void loadNotifications();
+    };
     window.addEventListener("inventory:refresh-notifications", onRefresh);
+
+    if (notificationOpen) {
+      // Fetch when the user opens the panel; refresh only while it is visible.
+      void loadNotifications();
+      intervalId = window.setInterval(() => void loadNotifications(), 60000);
+    } else if ("requestIdleCallback" in window) {
+      // Populate the badge when the browser is idle, not during first paint.
+      idleId = window.requestIdleCallback(() => void loadNotifications(), { timeout: 2500 });
+    } else {
+      timeoutId = window.setTimeout(() => void loadNotifications(), 1500);
+    }
+
     return () => {
       active = false;
-      window.clearInterval(timer);
+      if (intervalId !== null) window.clearInterval(intervalId);
+      if (timeoutId !== null) window.clearTimeout(timeoutId);
+      if (idleId !== null && "cancelIdleCallback" in window) window.cancelIdleCallback(idleId);
       window.removeEventListener("inventory:refresh-notifications", onRefresh);
     };
-  }, []);
+  }, [notificationOpen]);
 
   async function handleLogout() {
     if (isLoggingOut) return;
@@ -97,7 +116,7 @@ export default function Navbar({ handleClick, className = "", user }) {
             </button>
             <button type="button" className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-slate-500 transition hover:bg-slate-100 hover:text-slate-900" aria-label="Messages"><MdMessage size={22} /></button>
             {notificationOpen ? (
-              <div className="absolute right-0 top-14 z-50 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
+              <div className="fixed left-3 right-3 top-[5.5rem] z-[60] w-auto overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl sm:absolute sm:left-auto sm:right-0 sm:top-14 sm:z-50 sm:w-[min(22rem,calc(100vw-2rem))]">
                 <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
                   <div><p className="font-bold text-slate-900">Notifications</p><p className="text-xs text-slate-500">Live stock and order alerts</p></div>
                   <button type="button" onClick={() => setNotificationOpen(false)} aria-label="Close notifications" className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100"><MdClose size={18} /></button>
