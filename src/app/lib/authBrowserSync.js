@@ -37,9 +37,18 @@ export function broadcastAuthChange(type) {
 export function subscribeToAuthChanges(callback) {
   if (typeof window === "undefined") return () => {};
 
+  const recentlyHandled = new Set();
   const deliver = (value) => {
     const message = normalizeMessage(value);
-    if (message) callback(message);
+    if (!message) return;
+    const eventId = message.nonce || `${message.type}:${message.timestamp}`;
+    if (recentlyHandled.has(eventId)) return;
+    recentlyHandled.add(eventId);
+    if (recentlyHandled.size > 100) {
+      const oldest = recentlyHandled.values().next().value;
+      recentlyHandled.delete(oldest);
+    }
+    callback(message);
   };
 
   const onStorage = (event) => {
