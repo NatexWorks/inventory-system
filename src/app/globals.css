@@ -289,3 +289,82 @@ textarea {
     padding: 0.5rem;
   }
 }
+
+
+/* Mobile overflow fixes: keep content reachable instead of clipping wide controls. */
+.overflow-x-auto {
+  max-width: 100%;
+  min-width: 0;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.overflow-x-auto table {
+  width: max-content;
+  min-width: 100%;
+}
+
+@media (max-width: 639px) {
+  /* Prevent nested flex/grid children from forcing the page wider than the phone. */
+  main,
+  main > *,
+  main section,
+  main article,
+  main form,
+  main [class*="grid"],
+  main [class*="flex"] {
+    min-width: 0;
+  }
+
+  /* Wide inventory/report tables remain fully accessible via their own scroll area. */
+  main .overflow-x-auto {
+    width: 100%;
+    max-width: calc(100vw - 1rem);
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  main .overflow-x-auto table {
+    width: max-content;
+    min-width: 100%;
+  }
+
+  /* Reduce oversized controls while preserving comfortable touch targets. */
+  main button,
+  main a[role="button"] {
+    min-height: 2.5rem;
+  }
+
+  main input,
+  main select,
+  main textarea {
+    width: 100%;
+    min-width: 0;
+  }
+
+  /* Keep report controls compact and allow the action row to wrap naturally. */
+  .report-page > .report-page-content > section:first-child > div:first-child {
+    min-width: 0;
+  }
+
+  .report-page [data-testid="report-size-toggle"],
+  .report-page button {
+    max-width: 100%;
+    white-space: normal;
+  }
+
+  .report-page .report-page-content {
+    width: 100%;
+  }
+
+  .report-page svg[aria-label^="Sales revenue graph"] {
+    max-width: none;
+  }
+}
+
+@media (min-width: 640px) {
+  /* Keep the existing desktop/tablet presentation unchanged. */
+  .overflow-x-auto {
+    max-width: 100%;
+  }
+}
