@@ -703,7 +703,7 @@ export default function OrdersPage() {
             </div>
 
             <div className="grid min-w-0 gap-4 px-3 py-4 sm:px-5 sm:py-5 lg:grid-cols-[1.1fr_0.9fr]">
-              <div className="space-y-4">
+              <div className="min-w-0 space-y-4">
                 <BarcodeCameraScanner
                   onScan={(code) => processBarcodeCode(code, "camera")}
                   onStatus={setScanStatus}
@@ -735,7 +735,7 @@ export default function OrdersPage() {
                   <div className="rounded-3xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm text-indigo-700">{draftMessage}</div>
                 ) : null}
 
-                <div className="rounded-3xl border border-slate-200 bg-white">
+                <div className="min-w-0 max-w-full rounded-3xl border border-slate-200 bg-white">
                   <div className="flex min-w-0 flex-col gap-2 border-b border-slate-100 px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-4">
                     <div className="flex items-center gap-2">
                       <MdOutlineInventory2 className="text-lg text-indigo-600" />
@@ -798,7 +798,7 @@ export default function OrdersPage() {
                 </div>
               </div>
 
-              <aside className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
+              <aside className="min-w-0 max-w-full rounded-3xl border border-slate-200 bg-slate-50 p-3 sm:p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <MdShoppingCart className="text-lg text-indigo-600" />
@@ -905,7 +905,7 @@ export default function OrdersPage() {
             </div>
           </div>
 
-          <div className="min-w-0 max-w-full rounded-[28px] border border-white/70 bg-white/90 p-4 shadow-[0_24px_70px_rgba(15,23,42,0.08)] backdrop-blur sm:p-5">
+          <div className="min-w-0 max-w-full overflow-x-clip rounded-[28px] border border-white/70 bg-white/90 p-3 shadow-[0_24px_70px_rgba(15,23,42,0.08)] backdrop-blur sm:p-5">
             <div className="flex items-center justify-between gap-3">
               <h3 className="text-lg font-semibold text-slate-900">Billing Rules</h3>
               <button
