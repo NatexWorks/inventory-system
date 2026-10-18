@@ -368,3 +368,152 @@ textarea {
     max-width: 100%;
   }
 }
+
+
+/* Lightweight landing-page motion: transforms and opacity keep animations smooth. */
+@keyframes landingFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes landingFadeUp {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 16px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes landingSlideIn {
+  from {
+    opacity: 0;
+    transform: translate3d(24px, 0, 0) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes landingGlowDrift {
+  from { transform: translate3d(-4px, 5px, 0) scale(0.98); opacity: 0.65; }
+  to { transform: translate3d(6px, -5px, 0) scale(1.04); opacity: 0.95; }
+}
+
+@keyframes landingProgressFill {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+@keyframes landingIconFloat {
+  from { transform: translateY(0); }
+  to { transform: translateY(-3px); }
+}
+
+.landing-header {
+  animation: landingFadeIn 420ms ease-out both;
+}
+
+.landing-enter {
+  opacity: 0;
+  animation: landingFadeUp 580ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.landing-delay-1 { animation-delay: 80ms; }
+.landing-delay-2 { animation-delay: 160ms; }
+.landing-delay-3 { animation-delay: 250ms; }
+.landing-delay-4 { animation-delay: 340ms; }
+.landing-delay-5 { animation-delay: 430ms; }
+
+.landing-hero-backdrop {
+  transform-origin: 80% 10%;
+  animation: landingGlowDrift 16s ease-in-out 500ms infinite alternate;
+}
+
+.landing-preview-enter {
+  opacity: 0;
+  animation: landingSlideIn 760ms cubic-bezier(0.22, 1, 0.36, 1) 180ms both;
+}
+
+.landing-preview-card {
+  transition: transform 260ms ease, box-shadow 260ms ease;
+}
+
+.landing-preview-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 28px 70px rgba(79, 70, 229, 0.13);
+}
+
+.landing-preview-tile {
+  opacity: 0;
+  animation: landingFadeUp 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.landing-preview-tile-1 { animation-delay: 460ms; }
+.landing-preview-tile-2 { animation-delay: 560ms; }
+
+.landing-icon-bob {
+  animation: landingIconFloat 3.8s ease-in-out 1.3s infinite alternate;
+}
+
+.landing-progress-fill {
+  transform: scaleX(0);
+  transform-origin: left center;
+  animation: landingProgressFill 900ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.landing-progress-fill-1 { animation-delay: 620ms; }
+.landing-progress-fill-2 { animation-delay: 760ms; }
+.landing-progress-fill-3 { animation-delay: 900ms; }
+
+.home-page a:focus-visible {
+  outline: 3px solid rgba(99, 102, 241, 0.65);
+  outline-offset: 3px;
+}
+
+/* The observer only hides reveal items after JavaScript has initialised. */
+html.motion-reveal-ready .scroll-reveal:not(.is-visible) {
+  opacity: 0;
+  transform: translate3d(0, 18px, 0);
+}
+
+html.motion-reveal-ready .scroll-reveal.is-visible {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+  transition:
+    opacity 540ms ease,
+    transform 540ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-header,
+  .landing-enter,
+  .landing-hero-backdrop,
+  .landing-preview-enter,
+  .landing-preview-tile,
+  .landing-icon-bob,
+  .landing-progress-fill {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  .landing-preview-card,
+  .home-page a,
+  .home-page article,
+  .home-page article span {
+    transition: none !important;
+  }
+
+  html.motion-reveal-ready .scroll-reveal,
+  html.motion-reveal-ready .scroll-reveal:not(.is-visible),
+  html.motion-reveal-ready .scroll-reveal.is-visible {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+}
