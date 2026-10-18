@@ -194,7 +194,7 @@ test.describe('Authentication', () => {
     await page.getByRole('button', { name: /Inventory Report/i }).click();
     const reportRows = page.locator('table tbody tr');
     await expect(reportRows).toHaveCount(10);
-    await page.getByRole('button', { name: /View more/i }).click();
+    await page.getByRole('button', { name: /Show more/i }).last().click();
     await expect(reportRows).toHaveCount(12);
   });
 
