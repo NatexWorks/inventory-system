@@ -799,8 +799,8 @@ export default function OrdersPage() {
               </div>
 
               <aside className="min-w-0 max-w-full rounded-3xl border border-slate-200 bg-slate-50 p-3 sm:p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
+                <div className="flex min-w-0 flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex min-w-0 items-center gap-2">
                     <MdShoppingCart className="text-lg text-indigo-600" />
                     <h3 className="min-w-0 break-words font-semibold text-slate-900">{editingOrderId ? "Edit Pending Order" : "Draft Cart"}</h3>
                   </div>
@@ -906,8 +906,8 @@ export default function OrdersPage() {
           </div>
 
           <div className="min-w-0 max-w-full overflow-x-clip rounded-[28px] border border-white/70 bg-white/90 p-3 shadow-[0_24px_70px_rgba(15,23,42,0.08)] backdrop-blur sm:p-5">
-            <div className="flex items-center justify-between gap-3">
-              <h3 className="text-lg font-semibold text-slate-900">Billing Rules</h3>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h3 className="min-w-0 text-lg font-semibold text-slate-900">Billing Rules</h3>
               <button
                 type="button"
                 onClick={() => setShowBillingRules((visible) => !visible)}
