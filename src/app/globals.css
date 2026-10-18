@@ -66,6 +66,47 @@ input, select, textarea { max-width: 100%; }
     min-width: 0;
   }
 
+  /* Keep cards and gutters compact on phones without changing the landing page. */
+  .app-main-content [class~="p-4"],
+  .app-main-content [class~="p-5"] {
+    padding: 0.875rem !important;
+  }
+  .app-main-content [class~="p-6"] {
+    padding: 1rem !important;
+  }
+  .app-main-content [class~="px-4"] {
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+  }
+  .app-main-content [class~="px-5"] {
+    padding-left: 0.875rem !important;
+    padding-right: 0.875rem !important;
+  }
+  .app-main-content [class~="px-6"] {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+  .app-main-content [class~="py-4"] {
+    padding-top: 0.75rem !important;
+    padding-bottom: 0.75rem !important;
+  }
+  .app-main-content [class~="py-5"] {
+    padding-top: 0.875rem !important;
+    padding-bottom: 0.875rem !important;
+  }
+  .app-main-content [class~="py-6"] {
+    padding-top: 1rem !important;
+    padding-bottom: 1rem !important;
+  }
+  .app-main-content [class~="gap-4"] { gap: 0.75rem !important; }
+  .app-main-content [class~="gap-5"],
+  .app-main-content [class~="gap-6"] { gap: 0.875rem !important; }
+  .app-main-content [class~="mt-5"],
+  .app-main-content [class~="mt-6"] { margin-top: 0.875rem !important; }
+  .app-main-content [class~="rounded-3xl"],
+  .app-main-content [class~="rounded-[28px]"],
+  .app-main-content [class~="rounded-[30px]"] { border-radius: 1rem !important; }
+
   .app-main-content { width: 100%; }
   .app-main-content button,
   .app-main-content a[role="button"],
