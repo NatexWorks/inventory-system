@@ -1,5 +1,7 @@
 const AUTH_CHANNEL_NAME = "inventory-system-auth";
 const AUTH_STORAGE_KEY = "inventory-system-auth-event";
+// Distinguish this tab from sibling BroadcastChannel listeners in the same document.
+const AUTH_SOURCE_ID = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
 
 function normalizeMessage(value) {
   if (!value || (value.type !== "login" && value.type !== "logout")) return null;
@@ -15,6 +17,7 @@ export function broadcastAuthChange(type) {
     type,
     timestamp: Date.now(),
     nonce: Math.random().toString(36).slice(2),
+    sourceId: AUTH_SOURCE_ID,
   };
 
   try {
@@ -40,7 +43,7 @@ export function subscribeToAuthChanges(callback) {
   const recentlyHandled = new Set();
   const deliver = (value) => {
     const message = normalizeMessage(value);
-    if (!message) return;
+    if (!message || message.sourceId === AUTH_SOURCE_ID) return;
     const eventId = message.nonce || `${message.type}:${message.timestamp}`;
     if (recentlyHandled.has(eventId)) return;
     recentlyHandled.add(eventId);
