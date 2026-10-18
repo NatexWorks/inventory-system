@@ -744,7 +744,7 @@ export default function OrdersPage() {
                     <p className="max-w-full break-words text-xs text-slate-500 sm:text-right">{productLoading ? "Loading..." : `${productPagination.totalProducts || products.length} available`}</p>
                   </div>
                   <div className="max-h-[330px] overflow-auto p-4">
-                    <div className="grid gap-3 sm:grid-cols-2">
+                    <div data-testid="quick-add-product-list" className="grid gap-3 sm:grid-cols-2">
                       {quickAddProducts.map((product) => (
                         <button
                           key={product._id}
