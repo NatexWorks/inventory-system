@@ -100,6 +100,10 @@ export default function OrdersPage() {
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
   const [showAllQuickProducts, setShowAllQuickProducts] = useState(false);
+  const [isPhoneLayout, setIsPhoneLayout] = useState(false);
+  const [showBillingRules, setShowBillingRules] = useState(false);
+  const [loadingMoreProducts, setLoadingMoreProducts] = useState(false);
+  const [productPagination, setProductPagination] = useState({ page: 1, limit: 30, totalProducts: 0, totalPages: 1 });
   const [actionMessage, setActionMessage] = useState("");
   const [draftMessage, setDraftMessage] = useState("");
   const [scanStatus, setScanStatus] = useState("Camera scanner ready");
@@ -122,6 +126,18 @@ export default function OrdersPage() {
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
     };
+  }, []);
+
+  // Keep phone-only controls compact without changing desktop defaults.
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 639px)");
+    const applyViewport = () => {
+      setIsPhoneLayout(media.matches);
+      setShowBillingRules(!media.matches);
+    };
+    applyViewport();
+    media.addEventListener("change", applyViewport);
+    return () => media.removeEventListener("change", applyViewport);
   }, []);
 
   useEffect(() => {
@@ -157,13 +173,14 @@ export default function OrdersPage() {
       try {
         setProductLoading(true);
         const [productsResponse, settingsResponse] = await Promise.all([
-          fetch("/api/product?limit=100"),
-          fetch("/api/settings"),
+          fetch("/api/product?page=1&limit=30", { credentials: "include", cache: "no-store" }),
+          fetch("/api/settings", { credentials: "include", cache: "no-store" }),
         ]);
 
         if (productsResponse.ok) {
           const productsData = await productsResponse.json();
           setProducts(productsData?.data?.products || []);
+          setProductPagination(productsData?.data?.pagination || { page: 1, limit: 30, totalProducts: productsData?.data?.products?.length || 0, totalPages: 1 });
         }
 
         if (settingsResponse.ok) {
@@ -192,13 +209,44 @@ export default function OrdersPage() {
   }
 
   async function refreshProducts() {
-    const response = await fetch("/api/product?limit=100");
+    const limit = Math.min(100, Math.max(30, products.length));
+    const response = await fetch(`/api/product?page=1&limit=${limit}`, { credentials: "include", cache: "no-store" });
     if (!response.ok) {
       throw new Error("Failed to load products");
     }
 
     const data = await response.json();
     setProducts(data?.data?.products || []);
+    setProductPagination(data?.data?.pagination || { page: 1, limit, totalProducts: products.length, totalPages: 1 });
+  }
+
+  async function loadMoreProducts() {
+    if (loadingMoreProducts || productPagination.page >= productPagination.totalPages) return;
+
+    const nextPage = productPagination.page + 1;
+    setLoadingMoreProducts(true);
+    try {
+      const response = await fetch(`/api/product?page=${nextPage}&limit=30`, { credentials: "include", cache: "no-store" });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload?.message || "Failed to load more products");
+
+      const nextProducts = payload?.data?.products || [];
+      setProducts((current) => {
+        const merged = new Map(current.map((product) => [String(product._id), product]));
+        for (const product of nextProducts) merged.set(String(product._id), product);
+        return Array.from(merged.values());
+      });
+      setProductPagination(payload?.data?.pagination || {
+        page: nextPage,
+        limit: 30,
+        totalProducts: products.length + nextProducts.length,
+        totalPages: nextPage,
+      });
+    } catch (loadError) {
+      setDraftMessage(loadError.message || "Failed to load more products.");
+    } finally {
+      setLoadingMoreProducts(false);
+    }
   }
 
   function getAvailableStock(productId) {
@@ -609,8 +657,10 @@ export default function OrdersPage() {
     },
   ];
 
-  const quickAddProducts = showAllQuickProducts ? products : products.slice(0, 4);
-  const canExpandQuickProducts = products.length > 4;
+  const initialQuickAddLimit = isPhoneLayout ? 6 : 4;
+  const quickAddProducts = showAllQuickProducts ? products : products.slice(0, initialQuickAddLimit);
+  const canExpandQuickProducts = products.length > initialQuickAddLimit
+    || productPagination.page < productPagination.totalPages;
 
   return (
     <div className="min-h-[calc(100vh-4rem)] bg-[radial-gradient(circle_at_top_left,_rgba(99,102,241,0.14),_transparent_30%),linear-gradient(180deg,#eff4ff_0%,#f8fbff_45%,#eef2ff_100%)] px-4 py-4 sm:px-6 sm:py-6 lg:px-8">
@@ -690,7 +740,7 @@ export default function OrdersPage() {
                       <MdOutlineInventory2 className="text-lg text-indigo-600" />
                       <h3 className="font-semibold text-slate-900">Quick Add Products</h3>
                     </div>
-                    <p className="text-xs text-slate-500">{productLoading ? "Loading..." : `${products.length} available`}</p>
+                    <p className="text-xs text-slate-500">{productLoading ? "Loading..." : `${productPagination.totalProducts || products.length} available`}</p>
                   </div>
                   <div className="max-h-[330px] overflow-auto p-4">
                     <div className="grid gap-3 sm:grid-cols-2">
@@ -708,14 +758,39 @@ export default function OrdersPage() {
                       ))}
                     </div>
                     {canExpandQuickProducts ? (
-                      <div className="mt-4 flex justify-center">
-                        <button
-                          type="button"
-                          onClick={() => setShowAllQuickProducts((current) => !current)}
-                          className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700"
-                        >
-                          {showAllQuickProducts ? "Show less" : `Show more (${products.length - 4})`}
-                        </button>
+                      <div className="mt-4 flex flex-wrap justify-center gap-2">
+                        {!showAllQuickProducts ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowAllQuickProducts(true);
+                              if (productPagination.page < productPagination.totalPages) void loadMoreProducts();
+                            }}
+                            className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700"
+                          >
+                            Show more ({Math.max(0, productPagination.totalProducts - initialQuickAddLimit)})
+                          </button>
+                        ) : (
+                          <>
+                            {productPagination.page < productPagination.totalPages ? (
+                              <button
+                                type="button"
+                                onClick={() => void loadMoreProducts()}
+                                disabled={loadingMoreProducts}
+                                className="rounded-full border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-100 disabled:cursor-wait disabled:opacity-60"
+                              >
+                                {loadingMoreProducts ? "Loading products..." : "Load more products"}
+                              </button>
+                            ) : null}
+                            <button
+                              type="button"
+                              onClick={() => setShowAllQuickProducts(false)}
+                              className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700"
+                            >
+                              Show less
+                            </button>
+                          </>
+                        )}
                       </div>
                     ) : null}
                   </div>
@@ -830,9 +905,20 @@ export default function OrdersPage() {
           </div>
 
           <div className="rounded-[28px] border border-white/70 bg-white/90 p-5 shadow-[0_24px_70px_rgba(15,23,42,0.08)] backdrop-blur">
-            <h3 className="text-lg font-semibold text-slate-900">Billing Rules</h3>
-            <p className="mt-1 text-sm text-slate-500">These settings are loaded from the backend.</p>
-            <div className="mt-4 space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <h3 className="text-lg font-semibold text-slate-900">Billing Rules</h3>
+              <button
+                type="button"
+                onClick={() => setShowBillingRules((visible) => !visible)}
+                aria-expanded={showBillingRules}
+                aria-controls="billing-rules-content"
+                className="shrink-0 rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-700 transition hover:bg-indigo-100 sm:text-sm"
+              >
+                {showBillingRules ? "Hide rules" : "Show rules"}
+              </button>
+            </div>
+            <div id="billing-rules-content" className={showBillingRules ? "mt-4 space-y-3" : "hidden"}>
+              <p className="text-sm text-slate-500">These settings are loaded from the backend.</p>
               <div className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-600">
                 <p className="font-semibold text-slate-900">Stock deduction</p>
                 <p className="mt-1">Stock is deducted only after owner approval.</p>
