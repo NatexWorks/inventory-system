@@ -122,7 +122,7 @@ export default function Home() {
           <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {features.map(({ icon: Icon, title, description }, index) => (
               <ScrollReveal key={title} delay={index * 80}>
-                <article className="group h-full rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition-all duration-250 hover:-translate-y-1 hover:border-indigo-200 hover:shadow-lg hover:shadow-slate-200/60">
+                <article className="group h-full rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-indigo-200 hover:shadow-lg hover:shadow-slate-200/60">
                   <span className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-50 text-xl text-indigo-600 transition-transform duration-200 group-hover:scale-110"><Icon /></span>
                   <h3 className="mt-5 text-lg font-bold">{title}</h3>
                   <p className="mt-2 text-sm leading-6 text-slate-600">{description}</p>
