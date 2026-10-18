@@ -147,6 +147,57 @@ test.describe('Authentication', () => {
   });
 
 
+  test('mobile controls stay within the viewport and use progressive lists', async ({ page }) => {
+    test.setTimeout(120_000);
+    const auth = new AuthPage(page);
+    const users = getTestUsers();
+    await page.setViewportSize({ width: 320, height: 844 });
+    await auth.goto('/login');
+    await auth.login(users.owner.email, users.owner.password);
+
+    // The notification surface is portalled outside nav/backdrop containers and must fit the phone.
+    const notificationButton = page.getByRole('button', { name: /notifications/i });
+    await notificationButton.click();
+    const panel = page.getByTestId('notification-panel');
+    await expect(panel).toBeVisible();
+    const panelBox = await panel.boundingBox();
+    expect(panelBox).not.toBeNull();
+    expect(panelBox!.x).toBeGreaterThanOrEqual(0);
+    expect(panelBox!.x + panelBox!.width).toBeLessThanOrEqual(321);
+    await page.getByRole('button', { name: /close notifications/i }).click();
+
+    // Product actions remain icon-only on phones but keep accessible labels.
+    await page.goto('/products');
+    await expect(page.getByRole('heading', { name: /Products List/i })).toBeVisible();
+    const editAction = page.getByRole('button', { name: /^Edit /i }).first();
+    await expect(editAction).toBeVisible();
+    await expect(editAction.locator('span')).toBeHidden();
+
+    // Six quick-add products appear first on phones; Show more reveals the rest of the current page.
+    await page.goto('/orders');
+    await expect(page.getByRole('heading', { name: /Orders Overview/i })).toBeVisible();
+    const quickAddList = page.getByTestId('quick-add-product-list');
+    await expect(quickAddList.locator('button')).toHaveCount(6);
+    await page.getByRole('button', { name: /Show more/i }).first().click();
+    await expect(quickAddList.locator('button')).toHaveCount(12);
+
+    // Billing Rules are collapsed by default on phones and can be opened on demand.
+    const billingRules = page.getByRole('button', { name: /Show rules/i });
+    await expect(billingRules).toBeVisible();
+    await expect(page.getByText('Stock deduction', { exact: true })).toBeHidden();
+    await billingRules.click();
+    await expect(page.getByText('Stock deduction', { exact: true })).toBeVisible();
+
+    // Reports render ten rows at a time and reveal additional inventory rows on demand.
+    await page.goto('/reports');
+    await expect(page.getByRole('heading', { name: /Reports Dashboard/i })).toBeVisible();
+    await page.getByRole('button', { name: /Inventory Report/i }).click();
+    const reportRows = page.locator('table tbody tr');
+    await expect(reportRows).toHaveCount(10);
+    await page.getByRole('button', { name: /View more/i }).click();
+    await expect(reportRows).toHaveCount(12);
+  });
+
   test('report chart zoom stays inside the smallest supported phone viewport', async ({ page }) => {
     const auth = new AuthPage(page);
     const users = getTestUsers();
