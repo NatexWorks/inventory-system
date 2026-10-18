@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import {
   MdDownload,
   MdFileDownload,
@@ -203,6 +203,7 @@ export default function ReportsPage() {
   const [period, setPeriod] = useState("month");
   const [reportType, setReportType] = useState("sales");
   const [search, setSearch] = useState("");
+  const deferredSearch = useDeferredValue(search);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
@@ -236,7 +237,8 @@ export default function ReportsPage() {
   const data = report?.operationalReports || null;
   const selectedPeriod = PERIODS.find((item) => item.value === period) || PERIODS[1];
   const selectedReport = REPORT_TYPES.find((item) => item.value === reportType) || REPORT_TYPES[0];
-  const table = useMemo(() => makeReportTable(reportType, data, search, summary?.lowStockThreshold ?? 5), [reportType, data, search, summary?.lowStockThreshold]);
+  // Keep text input responsive while filtering potentially large report tables in the background.
+  const table = useMemo(() => makeReportTable(reportType, data, deferredSearch, summary?.lowStockThreshold ?? 5), [reportType, data, deferredSearch, summary?.lowStockThreshold]);
   // eslint-disable-next-line react-hooks/set-state-in-effect -- Reset report pagination when its filters change.
   useEffect(() => { setRowsToShow(10); }, [reportType, period, search]);
 
