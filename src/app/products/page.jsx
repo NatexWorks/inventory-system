@@ -522,7 +522,7 @@ export default function ProductsPage() {
               <p className="text-sm text-slate-500">Manage catalog entries and stock status.</p>
             </div>
             <div className="flex flex-wrap items-center gap-3">
-              <label className="flex items-center gap-2 text-sm text-slate-600">
+              <label className="flex min-w-0 flex-wrap items-center gap-2 text-sm text-slate-600 sm:flex-nowrap">
                 <span>Show</span>
                 <select aria-label="Products per page" value={pageSize} onChange={(event) => { setPageSize(Number(event.target.value)); setPage(1); }} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 outline-none focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100">
                   <option value={10}>10</option><option value={20}>20</option><option value={50}>50</option><option value={100}>100</option>
@@ -669,14 +669,14 @@ export default function ProductsPage() {
                       className="rounded-3xl border border-slate-100 bg-slate-50/80 p-4"
                     >
                       <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-900 text-sm font-bold text-white">
+                        <div className="flex min-w-0 flex-1 items-center gap-3">
+                          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-slate-900 text-sm font-bold text-white">
                             {(product.name || "P").charAt(0).toUpperCase()}
                           </div>
-                          <div>
-                            <p className="font-semibold text-slate-900">{product.name}</p>
-                            <p className="text-xs text-slate-500">{product.sku}</p>
-                            <p className="mt-1 text-[11px] text-slate-400">
+                          <div className="min-w-0 flex-1">
+                            <p className="wrap-safe font-semibold text-slate-900">{product.name}</p>
+                            <p className="wrap-safe text-xs text-slate-500">{product.sku}</p>
+                            <p className="wrap-safe mt-1 text-[11px] text-slate-400">
                               Barcodes: {Array.isArray(product.barcodes) ? product.barcodes.length : 0}/{Number(product.stock || 0)}
                             </p>
                           </div>
@@ -687,9 +687,9 @@ export default function ProductsPage() {
                       </div>
 
                       <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
-                        <div className="rounded-2xl bg-white p-3">
+                        <div className="min-w-0 rounded-2xl bg-white p-3">
                           <p className="text-xs text-slate-500">Category</p>
-                          <p className="mt-1 font-medium text-slate-900">{product.category || "Uncategorized"}</p>
+                          <p className="wrap-safe mt-1 font-medium text-slate-900">{product.category || "Uncategorized"}</p>
                         </div>
                         <div className="rounded-2xl bg-white p-3">
                           <p className="text-xs text-slate-500">Price</p>
