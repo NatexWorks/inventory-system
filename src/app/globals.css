@@ -12,363 +12,131 @@
   --font-mono: var(--font-geist-mono);
 }
 
+html { -webkit-text-size-adjust: 100%; }
+
 body {
+  min-width: 320px;
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
 }
 
-.product-description{
+.product-description {
   border: 2px solid rgb(214, 206, 206);
   border-radius: 5px;
   padding: 5px;
-
 }
-.product-description button{
+
+.product-description button {
   background-color: #c3bcbc;
-  border:2px ridge #928e8e;
+  border: 2px ridge #928e8e;
 }
-.btn::after{
+
+.btn::after {
   background-color: #c3bcbc;
-  border:2px ridge #928e8e;
+  border: 2px ridge #928e8e;
 }
 
+img, video, canvas, svg { max-width: 100%; }
+input, select, textarea { max-width: 100%; }
+.wrap-safe { overflow-wrap: anywhere; }
 
-/* Responsive safety net: preserve every field and column without page-level overflow. */
-html {
-  width: 100%;
-  min-width: 320px;
-  overflow-x: clip;
-  -webkit-text-size-adjust: 100%;
-}
-
-body {
-  width: 100%;
-  min-width: 320px;
-  overflow-x: clip;
-}
-
-img,
-video,
-canvas,
-svg {
-  max-width: 100%;
-}
-
-input,
-select,
-textarea {
-  max-width: 100%;
-}
-
-.wrap-safe {
-  overflow-wrap: anywhere;
-}
-
-@media (max-width: 639px) {
-  /* Wide tables remain complete and scroll inside their own region. */
-  table {
-    max-width: 100%;
-  }
-
-  main {
-    min-width: 0;
-  }
-
-  button,
-  input,
-  select,
-  textarea {
-    scroll-margin-block: 5rem;
-  }
-
-  /* Avoid iOS auto-zoom when focusing form fields. */
-  input,
-  select,
-  textarea {
-    font-size: max(16px, 1em);
-  }
-
-  /* Keep dialogs and dropdowns inside narrow screens. */
-  [role="dialog"],
-  [role="menu"] {
-    max-width: calc(100vw - 1.5rem);
-  }
-}
-
-
-/* Compact mobile workspace: keep content left-aligned, readable and inside the viewport. */
-@media (max-width: 639px) {
-  main,
-  main > div,
-  main > div > div {
-    min-width: 0;
-    max-width: 100%;
-  }
-
-  main [class~="p-5"] {
-    padding: 0.875rem !important;
-  }
-
-  main [class~="p-6"] {
-    padding: 1rem !important;
-  }
-
-  main [class~="px-5"] {
-    padding-left: 0.875rem !important;
-    padding-right: 0.875rem !important;
-  }
-
-  main [class~="px-6"] {
-    padding-left: 1rem !important;
-    padding-right: 1rem !important;
-  }
-
-  main [class~="py-5"] {
-    padding-top: 0.875rem !important;
-    padding-bottom: 0.875rem !important;
-  }
-
-  main [class~="py-6"] {
-    padding-top: 1rem !important;
-    padding-bottom: 1rem !important;
-  }
-
-  main [class~="gap-6"] {
-    gap: 1rem !important;
-  }
-
-  main [class~="gap-5"] {
-    gap: 0.75rem !important;
-  }
-
-  main [class~="mt-6"] {
-    margin-top: 1rem !important;
-  }
-
-  main [class~="rounded-[28px]"] {
-    border-radius: 1rem !important;
-  }
-
-  main h1 {
-    overflow-wrap: anywhere;
-    font-size: clamp(1.35rem, 6vw, 1.75rem);
-    line-height: 1.2;
-  }
-
-  main h2 {
-    overflow-wrap: anywhere;
-  }
-
-  .report-page {
-    padding-left: 0.625rem !important;
-    padding-right: 0.625rem !important;
-  }
-
-  .report-page-content {
-    margin-left: 0 !important;
-    margin-right: 0 !important;
-    gap: 0.75rem !important;
-  }
-
-  .report-page [class~="px-4"] {
-    padding-left: 0.75rem;
-    padding-right: 0.75rem;
-  }
-
-  .report-page table {
-    font-size: 0.75rem;
-  }
-
-  .report-page th,
-  .report-page td {
-    padding: 0.55rem 0.65rem;
-  }
-
-  .report-page[data-report-size="large"] .report-card-large {
-    padding: 1rem !important;
-  }
-}
-
-
-/* Final mobile fit rules: reduce oversized cards and check content rather than hiding overflow. */
-@media (max-width: 639px) {
-  main,
-  main > div,
-  main section,
-  main article {
-    min-width: 0;
-    max-width: 100%;
-  }
-
-  main [class~="p-4"],
-  main [class~="p-5"] {
-    padding: 0.75rem !important;
-  }
-
-  main [class~="px-4"],
-  main [class~="px-5"],
-  main [class~="px-6"] {
-    padding-left: 0.75rem !important;
-    padding-right: 0.75rem !important;
-  }
-
-  main [class~="py-4"],
-  main [class~="py-5"],
-  main [class~="py-6"] {
-    padding-top: 0.75rem !important;
-    padding-bottom: 0.75rem !important;
-  }
-
-  main [class~="gap-4"] {
-    gap: 0.75rem !important;
-  }
-
-  main [class~="gap-5"],
-  main [class~="gap-6"] {
-    gap: 0.875rem !important;
-  }
-
-  main [class~="mt-5"],
-  main [class~="mt-6"] {
-    margin-top: 0.875rem !important;
-  }
-
-  main [class~="rounded-3xl"],
-  main [class~="rounded-[28px]"],
-  main [class~="rounded-[30px]"] {
-    border-radius: 1rem !important;
-  }
-
-  main h2,
-  main h3,
-  main p,
-  main span,
-  main button,
-  main a {
-    min-width: 0;
-    overflow-wrap: anywhere;
-  }
-
-  .report-page {
-    padding-left: 0.5rem !important;
-    padding-right: 0.5rem !important;
-  }
-
-  .report-page-content {
-    gap: 0.75rem !important;
-  }
-
-  .report-page-content > section {
-    min-width: 0;
-  }
-
-  .report-page [class~="p-5"],
-  .report-page [class~="p-4"] {
-    padding: 0.75rem !important;
-  }
-
-  .report-page[data-report-size="large"] .report-card-large {
-    padding: 0.75rem !important;
-  }
-
-  .report-page svg[aria-label^="Sales revenue graph"] {
-    height: 220px !important;
-  }
-
-  .report-page .report-charts-large svg[aria-label^="Sales revenue graph"] {
-    height: 300px !important;
-  }
-
-  .report-page table {
-    font-size: 0.75rem;
-  }
-
-  .report-page th,
-  .report-page td {
-    padding: 0.5rem;
-  }
-}
-
-
-/* Mobile overflow fixes: keep content reachable instead of clipping wide controls. */
+/* Wide tables scroll within their own panel instead of expanding the page. */
 .overflow-x-auto {
-  max-width: 100%;
   min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
   overscroll-behavior-x: contain;
   -webkit-overflow-scrolling: touch;
 }
-
 .overflow-x-auto table {
   width: max-content;
   min-width: 100%;
 }
 
 @media (max-width: 639px) {
-  /* Prevent nested flex/grid children from forcing the page wider than the phone. */
-  main,
-  main > *,
-  main section,
-  main article,
-  main form,
-  main [class*="grid"],
-  main [class*="flex"] {
+  /* Constraints are scoped to the signed-in workspace, not the public landing page. */
+  .app-main-content,
+  .app-main-content > *,
+  .app-main-content section,
+  .app-main-content article,
+  .app-main-content form,
+  .app-main-content [class*="grid"],
+  .app-main-content [class*="flex"] {
     min-width: 0;
   }
 
-  /* Wide inventory/report tables remain fully accessible via their own scroll area. */
-  main .overflow-x-auto {
-    width: 100%;
-    max-width: calc(100vw - 1rem);
-    overflow-x: auto;
-    overflow-y: hidden;
-  }
-
-  main .overflow-x-auto table {
-    width: max-content;
-    min-width: 100%;
-  }
-
-  /* Reduce oversized controls while preserving comfortable touch targets. */
-  main button,
-  main a[role="button"] {
-    min-height: 2.5rem;
-  }
-
-  main input,
-  main select,
-  main textarea {
+  .app-main-content { width: 100%; }
+  .app-main-content button,
+  .app-main-content a[role="button"],
+  .app-main-content input,
+  .app-main-content select,
+  .app-main-content textarea {
+    min-width: 0;
     max-width: 100%;
-    min-width: 0;
   }
 
-  /* Keep report controls compact and allow the action row to wrap naturally. */
-  .report-page > .report-page-content > section:first-child > div:first-child {
-    min-width: 0;
+  .app-main-content button,
+  .app-main-content a[role="button"] { min-height: 2.5rem; }
+
+  .app-main-content input,
+  .app-main-content select,
+  .app-main-content textarea {
+    font-size: max(16px, 1em);
+    scroll-margin-block: 5rem;
   }
 
-  .report-page [data-testid="report-size-toggle"],
-  .report-page button {
-    max-width: 100%;
-    white-space: normal;
-  }
+  .app-main-content .overflow-x-auto { width: 100%; max-width: 100%; }
 
+  .report-page {
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+  }
   .report-page .report-page-content {
     width: 100%;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    gap: 0.75rem !important;
   }
-
+  .report-page .report-page-content > section { min-width: 0; }
+  .report-page [data-testid="report-size-toggle"],
+  .report-page button { max-width: 100%; white-space: normal; }
+  .report-page table { font-size: 0.75rem; }
+  .report-page th, .report-page td { padding: 0.5rem; }
   .report-page svg[aria-label^="Sales revenue graph"] {
-    max-width: none;
-  }
-}
-
-@media (min-width: 640px) {
-  /* Keep the existing desktop/tablet presentation unchanged. */
-  .overflow-x-auto {
     max-width: 100%;
+    height: 220px !important;
   }
+  .report-page .report-charts-large svg[aria-label^="Sales revenue graph"] {
+    height: 300px !important;
+  }
+
+  /* Reduce continuous decorative work on touch devices. */
+  .landing-hero-backdrop, .landing-icon-bob { animation: none; }
+  .landing-preview-card:hover { transform: none; }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .landing-header,
+  .landing-enter,
+  .landing-hero-backdrop,
+  .landing-preview-enter,
+  .landing-preview-tile,
+  .landing-icon-bob,
+  .landing-progress-fill,
+  .landing-preview-card,
+  .home-page a,
+  .home-page article,
+  .home-page article span,
+  html.motion-reveal-ready .scroll-reveal,
+  html.motion-reveal-ready .scroll-reveal:not(.is-visible),
+  html.motion-reveal-ready .scroll-reveal.is-visible {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+}
 
 /* Lightweight landing-page motion: transforms and opacity keep animations smooth. */
 @keyframes landingFadeIn {
