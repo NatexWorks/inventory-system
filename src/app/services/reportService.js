@@ -112,7 +112,8 @@ export async function buildCategoryAnalytics(userId) {
           _id: "$product.categoryId",
           revenue: {
             $sum: {
-              $ifNull: [
+              $cond: [
+                { $ne: [{ $ifNull: ["$items.lineTotal", 0] }, 0] },
                 "$items.lineTotal",
                 { $multiply: [{ $ifNull: ["$items.price", 0] }, { $ifNull: ["$items.quantity", 0] }] },
               ],
