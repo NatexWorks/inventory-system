@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import BarcodeCameraScanner from "./BarcodeCameraScanner";
 
 // Small labeled field wrapper keeps repeated form markup readable.
@@ -30,6 +30,7 @@ export default function ProductForm({
   barcodeRequired = false,
   barcodeMode = "optional",
 }) {
+  const [tipsVisible, setTipsVisible] = useState(true);
   const barcodeFieldRef = useRef(null);
   const barcodeListRef = useRef(null);
   const scannedBarcodes = String(formData.manualBarcodes || "")
@@ -195,15 +196,32 @@ export default function ProductForm({
 
       <aside className="space-y-5">
         <div className="rounded-[28px] border border-white/70 bg-white/90 p-5 shadow-[0_24px_70px_rgba(15,23,42,0.08)] backdrop-blur">
-          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-indigo-500">Tips</p>
-          <h3 className="mt-2 text-xl font-bold text-slate-900">Before you save</h3>
-          <ul className="mt-4 space-y-3 text-sm text-slate-600">
-            <li className="rounded-2xl bg-slate-50 px-4 py-3">Use a clear product name that matches your invoice records.</li>
-            <li className="rounded-2xl bg-slate-50 px-4 py-3">Keep SKU unique so search and edits stay fast later.</li>
-            <li className="rounded-2xl bg-slate-50 px-4 py-3">Set stock carefully to keep low-stock alerts accurate.</li>
-            <li className="rounded-2xl bg-slate-50 px-4 py-3">Choose the correct category for better filtering and reports.</li>
-            <li className="rounded-2xl bg-slate-50 px-4 py-3">You can paste barcodes or capture them from the camera before saving.</li>
-          </ul>
+<div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-indigo-500">Tips</p>
+              <h3 id="product-tips-heading" className="mt-2 text-xl font-bold text-slate-900">Before you save</h3>
+            </div>
+            <button
+              type="button"
+              onClick={() => setTipsVisible((visible) => !visible)}
+              aria-expanded={tipsVisible}
+              aria-controls="product-tips-list"
+              className="shrink-0 rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-700 transition hover:bg-indigo-100 sm:text-sm"
+            >
+              {tipsVisible ? "Hide tips" : "Show tips"}
+            </button>
+          </div>
+          {tipsVisible ? (
+            <ul id="product-tips-list" aria-labelledby="product-tips-heading" className="mt-4 space-y-3 text-sm text-slate-600">
+              <li className="rounded-2xl bg-slate-50 px-4 py-3">Use a clear product name that matches your invoice records.</li>
+              <li className="rounded-2xl bg-slate-50 px-4 py-3">Keep SKU unique so search and edits stay fast later.</li>
+              <li className="rounded-2xl bg-slate-50 px-4 py-3">Set stock carefully to keep low-stock alerts accurate.</li>
+              <li className="rounded-2xl bg-slate-50 px-4 py-3">Choose the correct category for better filtering and reports.</li>
+              <li className="rounded-2xl bg-slate-50 px-4 py-3">You can paste barcodes or capture them from the camera before saving.</li>
+            </ul>
+          ) : (
+            <p className="mt-4 text-sm text-slate-500">Tips are hidden. Select “Show tips” whenever you need them.</p>
+          )}
         </div>
 
         <div className="rounded-[28px] border border-white/70 bg-white/90 p-5 shadow-[0_24px_70px_rgba(15,23,42,0.08)] backdrop-blur">
