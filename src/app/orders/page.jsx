@@ -664,8 +664,8 @@ export default function OrdersPage() {
     || productPagination.page < productPagination.totalPages;
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-[radial-gradient(circle_at_top_left,_rgba(99,102,241,0.14),_transparent_30%),linear-gradient(180deg,#eff4ff_0%,#f8fbff_45%,#eef2ff_100%)] px-4 py-4 sm:px-6 sm:py-6 lg:px-8">
-      <div className="mx-auto flex max-w-7xl flex-col gap-6">
+    <div className="min-h-[calc(100vh-4rem)] min-w-0 overflow-x-clip bg-[radial-gradient(circle_at_top_left,_rgba(99,102,241,0.14),_transparent_30%),linear-gradient(180deg,#eff4ff_0%,#f8fbff_45%,#eef2ff_100%)] px-3 py-3 sm:px-6 sm:py-6 lg:px-8">
+      <div className="mx-auto flex w-full min-w-0 max-w-7xl flex-col gap-4 sm:gap-6">
         <section className="rounded-[28px] border border-white/70 bg-white/80 px-5 py-5 shadow-[0_24px_70px_rgba(15,23,42,0.08)] backdrop-blur">
           <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
             <div>
@@ -688,21 +688,21 @@ export default function OrdersPage() {
           </div>
         </section>
 
-        <section className="grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
-          <div className="rounded-[28px] border border-white/70 bg-white/90 shadow-[0_24px_70px_rgba(15,23,42,0.08)] backdrop-blur">
-            <div className="flex items-start justify-between gap-4 border-b border-slate-100 px-5 py-4">
+        <section className="grid min-w-0 gap-4 sm:gap-5 xl:grid-cols-[1.2fr_0.8fr]">
+          <div className="min-w-0 max-w-full rounded-[28px] border border-white/70 bg-white/90 shadow-[0_24px_70px_rgba(15,23,42,0.08)] backdrop-blur">
+            <div className="flex min-w-0 flex-col gap-3 border-b border-slate-100 px-4 py-4 sm:flex-row sm:items-start sm:justify-between sm:gap-4 sm:px-5">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.28em] text-indigo-500">Billing</p>
                 <h2 className="mt-2 text-xl font-bold text-slate-900">Orders Page POS</h2>
                 <p className="mt-1 text-sm text-slate-500">Barcode scan, draft cart, and checkout live here only.</p>
               </div>
-              <div className="flex items-center gap-2 rounded-2xl bg-slate-50 px-3 py-2 text-sm font-medium text-slate-600">
+              <div className="inline-flex w-fit max-w-full shrink-0 items-center gap-2 rounded-2xl bg-slate-50 px-3 py-2 text-sm font-medium text-slate-600">
                 {isOffline ? <MdWifiOff className="text-amber-500" /> : <MdSync className="text-emerald-500" />}
                 {isOffline ? "Offline" : "Online"}
               </div>
             </div>
 
-            <div className="grid gap-4 px-5 py-5 lg:grid-cols-[1.1fr_0.9fr]">
+            <div className="grid min-w-0 gap-4 px-3 py-4 sm:px-5 sm:py-5 lg:grid-cols-[1.1fr_0.9fr]">
               <div className="space-y-4">
                 <BarcodeCameraScanner
                   onScan={(code) => processBarcodeCode(code, "camera")}
@@ -710,9 +710,9 @@ export default function OrdersPage() {
                   className="shadow-sm"
                 />
 
-                <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
+                <div className="min-w-0 rounded-3xl border border-slate-200 bg-slate-50 p-3 sm:p-4">
                   <label className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Barcode Scanner</label>
-                  <div className="mt-3 flex gap-3">
+                  <div className="mt-3 flex min-w-0 flex-col gap-2 sm:flex-row sm:gap-3">
                     <input
                       value={barcode}
                       onChange={(event) => setBarcode(event.target.value)}
@@ -722,13 +722,13 @@ export default function OrdersPage() {
                     />
                     <button
                       onClick={handleScan}
-                      className="inline-flex items-center gap-2 rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-200"
+                      className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-200 sm:w-auto"
                     >
                       <MdOutlineQrCodeScanner className="text-lg" />
                       Scan
                     </button>
                   </div>
-                  <p className="mt-3 text-xs text-slate-500">{scanStatus}</p>
+                  <p className="mt-3 min-w-0 break-words text-xs text-slate-500">{scanStatus}</p>
                 </div>
 
                 {draftMessage ? (
@@ -736,12 +736,12 @@ export default function OrdersPage() {
                 ) : null}
 
                 <div className="rounded-3xl border border-slate-200 bg-white">
-                  <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+                  <div className="flex min-w-0 flex-col gap-2 border-b border-slate-100 px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-4">
                     <div className="flex items-center gap-2">
                       <MdOutlineInventory2 className="text-lg text-indigo-600" />
                       <h3 className="font-semibold text-slate-900">Quick Add Products</h3>
                     </div>
-                    <p className="text-xs text-slate-500">{productLoading ? "Loading..." : `${productPagination.totalProducts || products.length} available`}</p>
+                    <p className="max-w-full break-words text-xs text-slate-500 sm:text-right">{productLoading ? "Loading..." : `${productPagination.totalProducts || products.length} available`}</p>
                   </div>
                   <div className="max-h-[330px] overflow-auto p-4">
                     <div className="grid gap-3 sm:grid-cols-2">
@@ -802,9 +802,9 @@ export default function OrdersPage() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <MdShoppingCart className="text-lg text-indigo-600" />
-                    <h3 className="font-semibold text-slate-900">{editingOrderId ? "Edit Pending Order" : "Draft Cart"}</h3>
+                    <h3 className="min-w-0 break-words font-semibold text-slate-900">{editingOrderId ? "Edit Pending Order" : "Draft Cart"}</h3>
                   </div>
-                  <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-500">{cart.length} items</span>
+                  <span className="shrink-0 rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-500">{cart.length} items</span>
                 </div>
 
                 {editingOrderId ? <p role="status" className="mt-3 rounded-2xl bg-indigo-50 p-3 text-xs text-indigo-700">Editing order {orders.find((order) => String(order._id) === String(editingOrderId))?.orderNumber || ""}. Stock changes only when the order is approved.</p> : null}
@@ -882,10 +882,10 @@ export default function OrdersPage() {
                   </div>
                 </div>
 
-                <div className="mt-4 flex gap-3">
+                <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:gap-3">
                   <button
                     onClick={handleCheckout}
-                    className="flex-1 rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-200"
+                    className="min-h-11 w-full min-w-0 rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-200 sm:flex-1"
                   >
                     {editingOrderId ? "Save Order Changes" : "Create Pending Bill"}
                   </button>
@@ -896,7 +896,7 @@ export default function OrdersPage() {
                       setEditingOrderId(null);
                       window.localStorage.removeItem(DRAFT_KEY);
                     }}
-                    className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700"
+                    className="min-h-11 w-full shrink-0 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 sm:w-auto"
                   >
                     {editingOrderId ? "Cancel Edit" : "Clear"}
                   </button>
@@ -905,7 +905,7 @@ export default function OrdersPage() {
             </div>
           </div>
 
-          <div className="rounded-[28px] border border-white/70 bg-white/90 p-5 shadow-[0_24px_70px_rgba(15,23,42,0.08)] backdrop-blur">
+          <div className="min-w-0 max-w-full rounded-[28px] border border-white/70 bg-white/90 p-4 shadow-[0_24px_70px_rgba(15,23,42,0.08)] backdrop-blur sm:p-5">
             <div className="flex items-center justify-between gap-3">
               <h3 className="text-lg font-semibold text-slate-900">Billing Rules</h3>
               <button
