@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { MdArrowForward, MdLockOutline, MdPersonOutline } from "react-icons/md";
+import { broadcastAuthChange } from "../lib/authBrowserSync";
 
 // Shared input styling so both login and signup screens stay visually consistent.
 const baseField =
@@ -122,6 +123,7 @@ export default function AuthForm({ mode = "login", redirectPath = "/", initialEm
         setMessage(payload?.message || "Login successful");
       }
 
+      broadcastAuthChange("login");
       router.replace(redirectPath);
       router.refresh();
     } catch (err) {
