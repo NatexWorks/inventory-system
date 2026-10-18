@@ -166,7 +166,7 @@ export default function Navbar({ handleClick, className = "", user }) {
                   width: notificationPanelPosition.width,
                   maxHeight: notificationPanelPosition.maxHeight,
                 }}
-                className="z-[100] flex min-h-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
+                data-testid="notification-panel" className="z-[100] flex min-h-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
               >
                 <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
                   <div><p className="font-bold text-slate-900">Notifications</p><p className="text-xs text-slate-500">Live stock and order alerts</p></div>
