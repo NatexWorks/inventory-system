@@ -3,7 +3,8 @@ import {
   MdArrowDropDown, MdSearch, MdMenu, MdNotifications, MdMessage,
   MdAccountCircle, MdLogout, MdSettings, MdPersonAdd, MdClose
 } from "react-icons/md";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { broadcastAuthChange } from "../lib/authBrowserSync";
 
@@ -13,6 +14,8 @@ export default function Navbar({ handleClick, className = "", user }) {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [logoutError, setLogoutError] = useState("");
   const [notificationOpen, setNotificationOpen] = useState(false);
+  const notificationButtonRef = useRef(null);
+  const [notificationPanelPosition, setNotificationPanelPosition] = useState({ top: 76, left: 12, right: 12, width: undefined, maxHeight: "calc(100dvh - 5.5rem)" });
   const [accountOpen, setAccountOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [notificationsLoading, setNotificationsLoading] = useState(false);
@@ -20,6 +23,44 @@ export default function Navbar({ handleClick, className = "", user }) {
   const displayName = user?.name || "Inventory User";
   const displayEmail = user?.email || "Signed-in account";
   const unreadCount = notifications.length;
+
+  useEffect(() => {
+    if (!notificationOpen) return undefined;
+
+    const updatePlacement = () => {
+      const trigger = notificationButtonRef.current;
+      if (!trigger) return;
+      const rect = trigger.getBoundingClientRect();
+      const isPhone = window.matchMedia("(max-width: 639px)").matches;
+      const top = Math.min(rect.bottom + 8, Math.max(12, window.innerHeight - 160));
+
+      if (isPhone) {
+        setNotificationPanelPosition({
+          top,
+          left: 12,
+          right: 12,
+          width: undefined,
+          maxHeight: `calc(100dvh - ${top + 12}px)`,
+        });
+      } else {
+        setNotificationPanelPosition({
+          top,
+          left: undefined,
+          right: Math.max(12, window.innerWidth - rect.right),
+          width: "min(22rem, calc(100vw - 2rem))",
+          maxHeight: `calc(100dvh - ${top + 12}px)`,
+        });
+      }
+    };
+
+    updatePlacement();
+    window.addEventListener("resize", updatePlacement);
+    window.addEventListener("scroll", updatePlacement, true);
+    return () => {
+      window.removeEventListener("resize", updatePlacement);
+      window.removeEventListener("scroll", updatePlacement, true);
+    };
+  }, [notificationOpen]);
 
   useEffect(() => {
     let active = true;
@@ -110,18 +151,28 @@ export default function Navbar({ handleClick, className = "", user }) {
           </form>
 
           <div className="relative flex shrink-0 items-center gap-1 rounded-2xl border border-slate-200 bg-white p-1">
-            <button type="button" onClick={() => { setNotificationOpen((open) => !open); setAccountOpen(false); }} className="relative inline-flex h-10 w-10 items-center justify-center rounded-xl text-slate-500 transition hover:bg-slate-100 hover:text-slate-900" aria-label={`Notifications${unreadCount ? `, ${unreadCount} alerts` : ""}`} aria-expanded={notificationOpen}>
+            <button type="button" onClick={() => { setNotificationOpen((open) => !open); setAccountOpen(false); }} className="relative inline-flex h-10 w-10 items-center justify-center rounded-xl text-slate-500 transition hover:bg-slate-100 hover:text-slate-900" ref={notificationButtonRef} aria-label={`Notifications${unreadCount ? `, ${unreadCount} alerts` : ""}`} aria-expanded={notificationOpen}>
               <MdNotifications size={22} />
               {unreadCount > 0 ? <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-600 px-1 text-[10px] font-bold leading-none text-white">{unreadCount > 9 ? "9+" : unreadCount}</span> : null}
             </button>
             <button type="button" className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-slate-500 transition hover:bg-slate-100 hover:text-slate-900" aria-label="Messages"><MdMessage size={22} /></button>
-            {notificationOpen ? (
-              <div className="fixed left-3 right-3 top-[5.5rem] z-[60] w-auto overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl sm:absolute sm:left-auto sm:right-0 sm:top-14 sm:z-50 sm:w-[min(22rem,calc(100vw-2rem))]">
+            {notificationOpen && typeof document !== "undefined" ? createPortal(
+              <div
+                style={{
+                  position: "fixed",
+                  top: notificationPanelPosition.top,
+                  left: notificationPanelPosition.left,
+                  right: notificationPanelPosition.right,
+                  width: notificationPanelPosition.width,
+                  maxHeight: notificationPanelPosition.maxHeight,
+                }}
+                className="z-[100] flex min-h-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
+              >
                 <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
                   <div><p className="font-bold text-slate-900">Notifications</p><p className="text-xs text-slate-500">Live stock and order alerts</p></div>
                   <button type="button" onClick={() => setNotificationOpen(false)} aria-label="Close notifications" className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100"><MdClose size={18} /></button>
                 </div>
-                <div className="max-h-96 overflow-y-auto p-2">
+                <div className="min-h-0 overflow-y-auto p-2" style={{ maxHeight: "min(24rem, 45dvh)" }}>
                   {notificationsLoading && notifications.length === 0 ? <p className="px-3 py-5 text-sm text-slate-500">Checking alerts…</p> : null}
                   {!notificationsLoading && notifications.length === 0 ? <p className="px-3 py-5 text-sm text-slate-500">You&apos;re all caught up. No low-stock or recent-order alerts.</p> : null}
                   {notifications.map((item) => (
@@ -133,7 +184,9 @@ export default function Navbar({ handleClick, className = "", user }) {
                   ))}
                 </div>
                 <div className="border-t border-slate-100 px-4 py-3"><button type="button" onClick={() => { setNotificationOpen(false); router.push("/reports"); }} className="text-sm font-semibold text-indigo-600 hover:text-indigo-700">Open reports</button></div>
-              </div>
+
+              </div>,
+              document.body
             ) : null}
           </div>
 
