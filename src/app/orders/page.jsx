@@ -209,7 +209,8 @@ export default function OrdersPage() {
   }
 
   async function refreshProducts() {
-    const limit = Math.min(100, Math.max(30, products.length));
+    // Keep the refreshed list aligned with the same 30-product paging used by Load more.
+    const limit = 30;
     const response = await fetch(`/api/product?page=1&limit=${limit}`, { credentials: "include", cache: "no-store" });
     if (!response.ok) {
       throw new Error("Failed to load products");
