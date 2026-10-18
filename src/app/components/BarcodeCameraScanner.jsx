@@ -2,18 +2,24 @@
 
 import { useEffect, useRef, useState } from "react";
 import { MdCameraAlt, MdFlashOn, MdFlipCameraIos, MdOutlineQrCodeScanner, MdStop } from "react-icons/md";
-import { BarcodeFormat } from "@zxing/library";
-import { BrowserMultiFormatOneDReader } from "@zxing/browser";
-
 const LAST_CAMERA_KEY = "inventory-saas:last-camera";
 
-// The scanner is optimized for the formats we actually use in inventory workflows.
-const ZXING_FORMATS = [
-  BarcodeFormat.EAN_13,
-  BarcodeFormat.EAN_8,
-  BarcodeFormat.UPC_A,
-  BarcodeFormat.CODE_128,
-];
+// Load the optional ZXing fallback only when the browser's native BarcodeDetector
+// cannot scan. This keeps the heavier decoding libraries out of the common path.
+async function createZxingReader() {
+  const [library, browser] = await Promise.all([
+    import("@zxing/library"),
+    import("@zxing/browser"),
+  ]);
+  const reader = new browser.BrowserMultiFormatOneDReader();
+  reader.possibleFormats = [
+    library.BarcodeFormat.EAN_13,
+    library.BarcodeFormat.EAN_8,
+    library.BarcodeFormat.UPC_A,
+    library.BarcodeFormat.CODE_128,
+  ];
+  return reader;
+}
 
 // BarcodeDetector uses string format names rather than ZXing enums.
 const BARCODE_DETECTOR_FORMATS = ["ean_13", "ean_8", "upc_a", "code_128"];
@@ -186,20 +192,6 @@ export default function BarcodeCameraScanner({ onScan, onStatus, className = "" 
     onScanRef.current = onScan;
     onStatusRef.current = onStatus;
   }, [onScan, onStatus]);
-
-  useEffect(() => {
-    if (!supported || readerRef.current) {
-      return undefined;
-    }
-
-    const reader = new BrowserMultiFormatOneDReader();
-    reader.possibleFormats = ZXING_FORMATS;
-    readerRef.current = reader;
-
-    return () => {
-      readerRef.current = null;
-    };
-  }, [supported]);
 
   function clearScheduledScan() {
     if (scanLoopRef.current.frameId !== null && typeof videoRef.current?.cancelVideoFrameCallback === "function") {
@@ -552,6 +544,10 @@ export default function BarcodeCameraScanner({ onScan, onStatus, className = "" 
         setStatus({ type: "ready", message: "Browser detector active" });
         onStatusRef.current?.("Browser detector active");
       } else {
+        setStatus({ type: "starting", message: "Loading scanner engine..." });
+        onStatusRef.current?.("Loading scanner engine...");
+        readerRef.current = await createZxingReader();
+        if (sessionId !== sessionRef.current) return;
         setStatus({ type: "ready", message: "ZXing fallback active" });
         onStatusRef.current?.("ZXing fallback active");
       }
