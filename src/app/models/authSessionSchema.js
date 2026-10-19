@@ -16,7 +16,6 @@ const authSessionSchema = new Schema(
       type: String,
       required: true,
       unique: true,
-      index: true,
     },
     // Password reset/change increments the user's tokenVersion and invalidates old sessions.
     tokenVersion: { type: Number, default: 0, min: 0 },
