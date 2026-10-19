@@ -279,6 +279,56 @@ export default function ClientLayout({ children }) {
     || pathname.startsWith("/forgot-password/")
     || pathname.startsWith("/reset-password/");
 
+  // When someone opens the main URL (or signup page), verify any saved cookie
+  // with the backend first. A valid session goes straight to the workspace;
+  // a missing/invalid cookie leaves the public page available as normal.
+  useEffect(() => {
+    if (pathname !== "/" && pathname !== "/signup") return undefined;
+
+    let active = true;
+
+    async function resumeExistingSession() {
+      try {
+        const response = await fetch("/api/auth/me", {
+          credentials: "include",
+          cache: "no-store",
+        });
+
+        // Never redirect based only on locally cached profile data. The session
+        // must be confirmed by the backend for this online request.
+        if (
+          !active ||
+          !response.ok ||
+          response.headers.get("x-inventory-offline-session") === "true"
+        ) {
+          return;
+        }
+
+        const payload = await response.json();
+        if (!active || !payload?.data?.user) return;
+
+        const requestedNext = new URLSearchParams(window.location.search).get("next");
+        const destination =
+          requestedNext &&
+          requestedNext.startsWith("/") &&
+          !requestedNext.startsWith("//") &&
+          !/^\\/(?:login|signup|forgot-password|reset-password)(?:[/?#]|$)/.test(requestedNext)
+            ? requestedNext
+            : "/dashboard";
+
+        router.replace(destination);
+        router.refresh();
+      } catch {
+        // Fail open for public pages if the session endpoint is unreachable.
+      }
+    }
+
+    void resumeExistingSession();
+    return () => {
+      active = false;
+    };
+  }, [pathname, router]);
+
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- Close the mobile drawer when browser navigation changes routes.
     setMobileOpen(false);
