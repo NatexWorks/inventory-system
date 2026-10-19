@@ -22,7 +22,7 @@ function buildAuthState(setCookie: string, baseUrl: string) {
         value: value.trim(),
         domain: url.hostname,
         path: '/',
-        expires: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7,
+        expires: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30,
         httpOnly: true,
         secure: url.protocol === 'https:',
         sameSite: 'Lax' as const,
