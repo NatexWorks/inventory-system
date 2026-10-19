@@ -41,7 +41,6 @@ async function reconcileLowStockAlerts(userId, threshold) {
   })
     .select("_id name stock")
     .sort({ stock: 1, name: 1 })
-    .limit(2000)
     .lean();
 
   const lowStockIds = lowStockProducts.map((product) => product._id);
@@ -63,50 +62,58 @@ async function reconcileLowStockAlerts(userId, threshold) {
     }
   );
 
-  for (const product of lowStockProducts) {
-    const details = stockAlertDetails(product, threshold);
-    const filter = {
-      userId,
-      productId: product._id,
-      type: "low_stock",
-      active: true,
-    };
+  if (lowStockProducts.length === 0) return;
 
-    const existing = await Notification.findOne(filter).lean();
-    if (existing) {
-      // Refresh the current stock description, but never clear readAt or
-      // create a new event just because this same product is still low.
-      await Notification.updateOne(
-        { _id: existing._id, userId },
-        {
+  // Bulk upserts keep repeated polling efficient. Updating an existing active
+  // event never changes readAt; an inactive historical event gets a new record.
+  const operations = lowStockProducts.map((product) => {
+    const details = stockAlertDetails(product, threshold);
+    return {
+      updateOne: {
+        filter: {
+          userId,
+          productId: product._id,
+          type: "low_stock",
+          active: true,
+        },
+        update: {
           $set: {
             title: details.title,
             message: details.message,
             level: details.level,
           },
-        }
-      );
-      continue;
-    }
+          $setOnInsert: {
+            userId,
+            productId: product._id,
+            type: "low_stock",
+            stockAtCreation: Math.max(0, Number(product.stock) || 0),
+            thresholdAtCreation: threshold,
+            readAt: null,
+            active: true,
+            resolvedAt: null,
+          },
+        },
+        upsert: true,
+      },
+    };
+  });
 
-    try {
-      await Notification.create({
-        ...filter,
-        ...details,
-        stockAtCreation: Math.max(0, Number(product.stock) || 0),
-        thresholdAtCreation: threshold,
-        readAt: null,
-        active: true,
-      });
-    } catch (error) {
-      // Parallel badge/panel requests can race to create the same alert.
-      // The partial unique index allows only one active alert per product.
-      if (error?.code !== 11000) throw error;
-      await Notification.updateOne(
-        filter,
-        { $set: { title: details.title, message: details.message, level: details.level } }
-      );
-    }
+  try {
+    await Notification.bulkWrite(operations, { ordered: false });
+  } catch (error) {
+    const writeErrors = error?.writeErrors || error?.result?.getWriteErrors?.() || [];
+    const duplicateOnly = error?.code === 11000
+      || (writeErrors.length > 0 && writeErrors.every((item) => item.code === 11000));
+    if (!duplicateOnly) throw error;
+
+    // Concurrent requests may race to create an alert. The partial unique
+    // index wins that race; retry without upsert to refresh the winning records.
+    await Notification.bulkWrite(
+      operations.map((operation) => ({
+        updateOne: { ...operation.updateOne, upsert: false },
+      })),
+      { ordered: false }
+    );
   }
 }
 
