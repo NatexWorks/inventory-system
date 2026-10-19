@@ -19,14 +19,13 @@ const authSessionSchema = new Schema(
     },
     // Password reset/change increments the user's tokenVersion and invalidates old sessions.
     tokenVersion: { type: Number, default: 0, min: 0 },
-    expiresAt: {
-      type: Date,
-      required: true,
-      index: { expires: 0 },
-    },
+    expiresAt: { type: Date, required: true },
   },
   { timestamps: true, collection: "auth_sessions" }
 );
+
+// MongoDB removes expired records asynchronously; every auth check also enforces expiresAt.
+authSessionSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
 const AuthSession = mongoose.models.AuthSession || mongoose.model("AuthSession", authSessionSchema);
 
