@@ -30,6 +30,15 @@ test.describe('Auth API', () => {
       });
       const signupPayload = await expectSuccess(signup, 201);
       expect(signupPayload.data.user).toMatchObject({ email: email.toLowerCase(), role: 'owner' });
+      expect(signupPayload.data.sessionId).toBeUndefined();
+
+      const signupCookie = signup.headers()['set-cookie'] || '';
+      expect(signupCookie).toMatch(/Max-Age=2592000/i);
+      expect(signupCookie).toMatch(/HttpOnly/i);
+      const signupSessionId = signupCookie.match(/inventory_saas_token=([^;]+)/)?.[1];
+      expect(signupSessionId).toBeTruthy();
+      expect(signupSessionId!.split('.')).toHaveLength(1);
+      expect(signupSessionId!.length).toBeGreaterThanOrEqual(40);
 
       const login = await request.post('/api/auth/login', {
         data: { email, password },
@@ -64,6 +73,12 @@ test.describe('Auth API', () => {
         data: { email, password: 'Password456!' },
       });
       await expectSuccess(relogin, 200);
+      expect(relogin.headers()['set-cookie'] || '').toMatch(/Max-Age=2592000/i);
+
+      const logout = await request.post('/api/auth/logout');
+      await expectSuccess(logout, 200);
+      const afterLogout = await request.get('/api/auth/me');
+      await expectFailure(afterLogout, 401);
     });
   });
 
