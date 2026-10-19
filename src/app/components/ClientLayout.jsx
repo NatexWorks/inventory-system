@@ -312,7 +312,7 @@ export default function ClientLayout({ children }) {
           requestedNext &&
           requestedNext.startsWith("/") &&
           !requestedNext.startsWith("//") &&
-          !/^\\/(?:login|signup|forgot-password|reset-password)(?:[/?#]|$)/.test(requestedNext)
+          !/^\/(?:login|signup|forgot-password|reset-password)(?:[/?#]|$)/.test(requestedNext)
             ? requestedNext
             : "/dashboard";
 
