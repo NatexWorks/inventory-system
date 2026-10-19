@@ -116,6 +116,7 @@ input, select, textarea { max-width: 100%; }
   .app-main-content h2,
   .app-main-content h3,
   .app-main-content p,
+  .app-main-content span,
   .app-main-content label,
   .app-main-content [role="status"],
   .app-main-content [role="alert"] {
