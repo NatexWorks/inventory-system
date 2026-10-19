@@ -16,7 +16,7 @@ export async function POST(request) {
     if (!emailLimit.allowed || !ipLimit.allowed) {
       return jsonError("Too many signup attempts. Please try again later.", 429);
     }
-    const { user, token } = await registerUser(body);
+    const { user, sessionId, tokenDays } = await registerUser(body);
 
     const response = success("Signup successful", {
       user: {
@@ -27,7 +27,7 @@ export async function POST(request) {
       },
     }, null, 201);
 
-    return applyAuthCookie(response, token);
+    return applyAuthCookie(response, sessionId, tokenDays);
   } catch (error) {
     const normalized = normalizeError(error);
     return failure(normalized.message, normalized.errors, normalized.status);
