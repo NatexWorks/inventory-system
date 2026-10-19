@@ -19,6 +19,28 @@ test.describe('Authentication', () => {
     await expect(page).toHaveURL(/\/login/);
   });
 
+  test('reopens the main URL by validating the saved backend session and redirecting to the dashboard', async ({ page }) => {
+    const auth = new AuthPage(page);
+    const users = getTestUsers();
+
+    await auth.goto('/login');
+    await auth.login(users.owner.email, users.owner.password);
+    await expect(page).toHaveURL(/\\/dashboard$/);
+
+    // Simulate opening the public production URL again in the same browser.
+    const verifiedSession = page.waitForResponse((response) =>
+      response.url().endsWith('/api/auth/me') &&
+      response.request().method() === 'GET'
+    );
+    await page.goto('/');
+    const response = await verifiedSession;
+
+    expect(response.ok()).toBeTruthy();
+    expect(response.headers()['x-inventory-offline-session']).not.toBe('true');
+    await expect(page).toHaveURL(/\\/dashboard$/);
+    await auth.expectHeading(/Welcome back/i);
+  });
+
   test('signs up a fresh workspace user', async ({ page }) => {
     const auth = new AuthPage(page);
     const runId = loadSeedData().runId;
