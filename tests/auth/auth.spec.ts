@@ -25,7 +25,7 @@ test.describe('Authentication', () => {
 
     await auth.goto('/login');
     await auth.login(users.owner.email, users.owner.password);
-    await expect(page).toHaveURL(/\\/dashboard$/);
+    await expect(page).toHaveURL(/\/dashboard$/);
 
     // Simulate opening the public production URL again in the same browser.
     const verifiedSession = page.waitForResponse((response) =>
@@ -37,7 +37,7 @@ test.describe('Authentication', () => {
 
     expect(response.ok()).toBeTruthy();
     expect(response.headers()['x-inventory-offline-session']).not.toBe('true');
-    await expect(page).toHaveURL(/\\/dashboard$/);
+    await expect(page).toHaveURL(/\/dashboard$/);
     await auth.expectHeading(/Welcome back/i);
   });
 
