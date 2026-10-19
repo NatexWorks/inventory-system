@@ -19,10 +19,14 @@ export default function Navbar({ handleClick, className = "", user }) {
   const [accountOpen, setAccountOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [notificationsLoading, setNotificationsLoading] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [notificationToast, setNotificationToast] = useState(null);
+  const seenNotificationIdsRef = useRef(new Set());
+  const notificationBaselineReadyRef = useRef(false);
+  const notificationToastTimerRef = useRef(null);
 
   const displayName = user?.name || "Inventory User";
   const displayEmail = user?.email || "Signed-in account";
-  const unreadCount = notifications.length;
 
   useEffect(() => {
     if (!notificationOpen) return undefined;
@@ -70,11 +74,41 @@ export default function Navbar({ handleClick, className = "", user }) {
 
     async function loadNotifications() {
       try {
-        setNotificationsLoading(true);
         const response = await fetch("/api/notifications", { credentials: "include", cache: "no-store" });
         if (!response.ok) return;
         const payload = await response.json();
-        if (active) setNotifications(payload?.data?.notifications || []);
+        if (!active) return;
+
+        const nextNotifications = Array.isArray(payload?.data?.notifications)
+          ? payload.data.notifications
+          : [];
+        const seenIds = seenNotificationIdsRef.current;
+
+        // The first response establishes a baseline. Only later, genuinely new
+        // unread event IDs produce a toast; polling a still-low item does not.
+        if (notificationBaselineReadyRef.current) {
+          const newUnread = nextNotifications.filter((item) => !item.isRead && !seenIds.has(item.id));
+          if (newUnread.length > 0) {
+            const first = newUnread[0];
+            setNotificationToast({
+              count: newUnread.length,
+              title: first.title,
+              message: first.message,
+            });
+            if (notificationToastTimerRef.current !== null) {
+              window.clearTimeout(notificationToastTimerRef.current);
+            }
+            notificationToastTimerRef.current = window.setTimeout(() => {
+              setNotificationToast(null);
+              notificationToastTimerRef.current = null;
+            }, 9000);
+          }
+        }
+
+        for (const item of nextNotifications) seenIds.add(item.id);
+        notificationBaselineReadyRef.current = true;
+        setNotifications(nextNotifications);
+        setUnreadCount(Math.max(0, Number(payload?.data?.unreadCount) || 0));
       } catch {
         // Notification loading is non-critical; keep the rest of the workspace usable.
       } finally {
@@ -82,21 +116,36 @@ export default function Navbar({ handleClick, className = "", user }) {
       }
     }
 
-    const onRefresh = () => {
-      if (notificationOpen) void loadNotifications();
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === "visible") {
+        setNotificationsLoading(true);
+        void loadNotifications();
+      }
     };
+    const onRefresh = () => refreshWhenVisible();
     window.addEventListener("inventory:refresh-notifications", onRefresh);
+    window.addEventListener("focus", refreshWhenVisible);
+    document.addEventListener("visibilitychange", refreshWhenVisible);
 
     if (notificationOpen) {
-      // Fetch when the user opens the panel; refresh only while it is visible.
+      setNotificationsLoading(true);
       void loadNotifications();
-      intervalId = window.setInterval(() => void loadNotifications(), 60000);
     } else if ("requestIdleCallback" in window) {
-      // Populate the badge when the browser is idle, not during first paint.
-      idleId = window.requestIdleCallback(() => void loadNotifications(), { timeout: 2500 });
+      // Keep the initial badge fetch off the critical first paint.
+      idleId = window.requestIdleCallback(() => {
+        setNotificationsLoading(true);
+        void loadNotifications();
+      }, { timeout: 2500 });
     } else {
-      timeoutId = window.setTimeout(() => void loadNotifications(), 1500);
+      timeoutId = window.setTimeout(() => {
+        setNotificationsLoading(true);
+        void loadNotifications();
+      }, 1500);
     }
+
+    // Poll while the authenticated workspace is open, not only while the panel
+    // is expanded, so new low-stock transitions surface in the bell and toast.
+    intervalId = window.setInterval(refreshWhenVisible, 60000);
 
     return () => {
       active = false;
@@ -104,8 +153,17 @@ export default function Navbar({ handleClick, className = "", user }) {
       if (timeoutId !== null) window.clearTimeout(timeoutId);
       if (idleId !== null && "cancelIdleCallback" in window) window.cancelIdleCallback(idleId);
       window.removeEventListener("inventory:refresh-notifications", onRefresh);
+      window.removeEventListener("focus", refreshWhenVisible);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
     };
   }, [notificationOpen]);
+
+  useEffect(() => () => {
+    if (notificationToastTimerRef.current !== null) {
+      window.clearTimeout(notificationToastTimerRef.current);
+    }
+  }, []);
+
 
   async function handleLogout() {
     if (isLoggingOut) return;
@@ -121,6 +179,60 @@ export default function Navbar({ handleClick, className = "", user }) {
       setLogoutError("Logout failed. Please try again.");
     } finally {
       setIsLoggingOut(false);
+    }
+  }
+
+  async function markNotificationRead(item) {
+    if (item.isRead) return true;
+
+    try {
+      const response = await fetch("/api/notifications", {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: item.id }),
+      });
+      if (!response.ok) return false;
+
+      const payload = await response.json();
+      const readAt = payload?.data?.readAt || new Date().toISOString();
+      setNotifications((current) => current.map((notification) =>
+        notification.id === item.id
+          ? { ...notification, isRead: true, readAt }
+          : notification
+      ));
+      setUnreadCount((count) => Math.max(0, count - 1));
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  async function markAllNotificationsRead() {
+    if (unreadCount === 0) return;
+    try {
+      const response = await fetch("/api/notifications", {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ markAllRead: true }),
+      });
+      if (!response.ok) return;
+      const readAt = new Date().toISOString();
+      setNotifications((current) => current
+        .filter((item) => item.active)
+        .map((item) => ({ ...item, isRead: true, readAt })));
+      setUnreadCount(0);
+    } catch {
+      // Keep current read state if the server could not confirm the action.
+    }
+  }
+
+  function dismissNotificationToast() {
+    setNotificationToast(null);
+    if (notificationToastTimerRef.current !== null) {
+      window.clearTimeout(notificationToastTimerRef.current);
+      notificationToastTimerRef.current = null;
     }
   }
 
@@ -151,7 +263,7 @@ export default function Navbar({ handleClick, className = "", user }) {
           </form>
 
           <div className="relative flex shrink-0 items-center gap-1 rounded-2xl border border-slate-200 bg-white p-1">
-            <button type="button" onClick={() => { setNotificationOpen((open) => !open); setAccountOpen(false); }} className="relative inline-flex h-10 w-10 items-center justify-center rounded-xl text-slate-500 transition hover:bg-slate-100 hover:text-slate-900" ref={notificationButtonRef} aria-label={`Notifications${unreadCount ? `, ${unreadCount} alerts` : ""}`} aria-expanded={notificationOpen}>
+            <button type="button" onClick={() => { setNotificationOpen((open) => !open); setAccountOpen(false); }} className="relative inline-flex h-10 w-10 items-center justify-center rounded-xl text-slate-500 transition hover:bg-slate-100 hover:text-slate-900" ref={notificationButtonRef} aria-label={`Notifications${unreadCount ? `, ${unreadCount} unread low-stock alerts` : ""}`} aria-expanded={notificationOpen}>
               <MdNotifications size={22} />
               {unreadCount > 0 ? <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-600 px-1 text-[10px] font-bold leading-none text-white">{unreadCount > 9 ? "9+" : unreadCount}</span> : null}
             </button>
@@ -169,21 +281,39 @@ export default function Navbar({ handleClick, className = "", user }) {
                 data-testid="notification-panel" className="z-[100] flex min-h-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
               >
                 <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
-                  <div><p className="font-bold text-slate-900">Notifications</p><p className="text-xs text-slate-500">Live stock and order alerts</p></div>
+                  <div className="min-w-0">
+                    <p className="font-bold text-slate-900">Notifications</p>
+                    <p className="text-xs text-slate-500">Low-stock alerts only{unreadCount ? ` · ${unreadCount} unread` : ""}</p>
+                    {unreadCount > 0 ? <button type="button" onClick={markAllNotificationsRead} className="mt-1 text-xs font-semibold text-indigo-600 hover:text-indigo-700">Mark all read</button> : null}
+                  </div>
                   <button type="button" onClick={() => setNotificationOpen(false)} aria-label="Close notifications" className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100"><MdClose size={18} /></button>
                 </div>
                 <div className="min-h-0 overflow-y-auto p-2" style={{ maxHeight: "min(24rem, 45dvh)" }}>
-                  {notificationsLoading && notifications.length === 0 ? <p className="px-3 py-5 text-sm text-slate-500">Checking alerts…</p> : null}
-                  {!notificationsLoading && notifications.length === 0 ? <p className="px-3 py-5 text-sm text-slate-500">You&apos;re all caught up. No low-stock or recent-order alerts.</p> : null}
+                  {notificationsLoading && notifications.length === 0 ? <p className="px-3 py-5 text-sm text-slate-500">Checking low-stock alerts…</p> : null}
+                  {!notificationsLoading && notifications.length === 0 ? <p className="px-3 py-5 text-sm text-slate-500">No low-stock alerts to review.</p> : null}
                   {notifications.map((item) => (
-                    <button key={item.id} type="button" onClick={() => { setNotificationOpen(false); router.push(item.href || "/reports"); }} className="block w-full rounded-xl px-3 py-3 text-left transition hover:bg-slate-50">
-                      <span className={`mb-1 inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${item.level === "critical" ? "bg-rose-50 text-rose-700" : item.level === "warning" ? "bg-amber-50 text-amber-700" : "bg-sky-50 text-sky-700"}`}>{item.kind}</span>
-                      <span className="block text-sm font-semibold text-slate-800">{item.title}</span>
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={async () => {
+                        if (!item.isRead) await markNotificationRead(item);
+                        setNotificationOpen(false);
+                        router.push(item.href || "/products");
+                      }}
+                      className={`block w-full rounded-xl border px-3 py-3 text-left transition hover:bg-slate-50 ${item.isRead ? "border-transparent bg-white" : "border-indigo-100 bg-indigo-50/50"}`}
+                    >
+                      <span className="mb-1 flex items-center justify-between gap-2">
+                        <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${!item.active ? "bg-slate-100 text-slate-600" : item.level === "critical" ? "bg-rose-50 text-rose-700" : "bg-amber-50 text-amber-700"}`}>
+                          {!item.active ? "Resolved" : item.kind}
+                        </span>
+                        {!item.isRead ? <span className="h-2 w-2 shrink-0 rounded-full bg-indigo-600" aria-label="Unread" /> : <span className="text-[10px] font-medium text-slate-400">Read</span>}
+                      </span>
+                      <span className={`block text-sm ${item.isRead ? "font-medium text-slate-700" : "font-bold text-slate-900"}`}>{item.title}</span>
                       <span className="mt-1 block text-xs leading-5 text-slate-500">{item.message}</span>
                     </button>
                   ))}
                 </div>
-                <div className="border-t border-slate-100 px-4 py-3"><button type="button" onClick={() => { setNotificationOpen(false); router.push("/reports"); }} className="text-sm font-semibold text-indigo-600 hover:text-indigo-700">Open reports</button></div>
+                <div className="border-t border-slate-100 px-4 py-3"><button type="button" onClick={() => { setNotificationOpen(false); router.push("/products"); }} className="text-sm font-semibold text-indigo-600 hover:text-indigo-700">Review products</button></div>
 
               </div>,
               document.body
@@ -210,6 +340,20 @@ export default function Navbar({ handleClick, className = "", user }) {
           </button>
         </div>
       </nav>
+      {notificationToast ? (
+        <div role="status" aria-live="polite" className="fixed right-3 top-20 z-[120] w-[min(22rem,calc(100vw-1.5rem))] rounded-2xl border border-amber-200 bg-white p-4 shadow-2xl sm:right-5">
+          <div className="flex items-start gap-3">
+            <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-700"><MdNotifications size={20} /></span>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-bold text-slate-900">{notificationToast.count > 1 ? `${notificationToast.count} new low-stock alerts` : "New low-stock alert"}</p>
+              <p className="mt-1 truncate text-sm font-semibold text-slate-800">{notificationToast.title}</p>
+              <p className="mt-1 text-xs leading-5 text-slate-500">{notificationToast.message}</p>
+              <button type="button" onClick={() => { dismissNotificationToast(); setNotificationOpen(true); setAccountOpen(false); }} className="mt-3 text-sm font-semibold text-indigo-600 hover:text-indigo-700">View alert</button>
+            </div>
+            <button type="button" onClick={dismissNotificationToast} aria-label="Dismiss low-stock alert" className="rounded-lg p-1 text-slate-400 hover:bg-slate-100"><MdClose size={16} /></button>
+          </div>
+        </div>
+      ) : null}
       {logoutError ? <div role="alert" className="border-b border-rose-200 bg-rose-50 px-4 py-2 text-right text-sm text-rose-700">{logoutError}</div> : null}
     </>
   );
