@@ -101,10 +101,10 @@ test.describe('Low-stock notification lifecycle', () => {
         expect(newAlert!.isRead).toBe(false);
         expect(newAlertPayload.data.unreadCount).toBe(recovered.data.unreadCount + 1);
 
-        const markAllRead = await request.patch('/api/notifications', {
-          data: { markAllRead: true },
+        const markNewAlertRead = await request.patch('/api/notifications', {
+          data: { id: newAlert!.id },
         });
-        await expectSuccess(markAllRead, 200);
+        await expectSuccess(markNewAlertRead, 200);
       } finally {
         if (productId) {
           // Resolve the test event and acknowledge it so the shared test account is left clean.
