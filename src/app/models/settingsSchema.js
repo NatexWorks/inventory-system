@@ -30,7 +30,8 @@ const settingsSchema = new Schema(
     system: {
       offlineMode: { type: Boolean, default: true },
       sessionTimeoutMinutes: { type: Number, default: 30 },
-      tokenExpirationDays: { type: Number, min: 1, max: 30, default: 7 },
+      tokenExpirationDays: { type: Number, min: 1, max: 30, default: 30 },
+      tokenExpirationPolicyVersion: { type: Number, default: 1, min: 1 },
     },
   },
   { timestamps: true }
