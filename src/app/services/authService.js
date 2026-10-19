@@ -13,7 +13,7 @@ import {
   magicLinkRequestSchema,
   resetPasswordSchema,
 } from "../lib/validation";
-import { comparePassword, createAuthPayload, hashPassword, signToken } from "../lib/security";
+import { comparePassword, createAuthSession, hashPassword } from "../lib/security";
 import crypto from "node:crypto";
 
 export async function registerUser(input) {
@@ -47,11 +47,11 @@ export async function registerUser(input) {
     { upsert: true, returnDocument: "after" }
   );
 
-  const token = signToken(createAuthPayload(user));
+  const session = await createAuthSession(user, 30);
 
   return {
     user: user.toObject(),
-    token,
+    ...session,
   };
 }
 
@@ -192,15 +192,37 @@ export async function loginUser(input) {
   }
 
   const settings = await Settings.findOne({ userId: user._id })
-    .select("system.tokenExpirationDays")
+    .select("system.tokenExpirationDays system.tokenExpirationPolicyVersion")
     .lean();
-  const tokenDays = Number(settings?.system?.tokenExpirationDays) || 7;
-  const token = signToken(createAuthPayload(user), tokenDays);
+
+  // Previously, 7 days was the schema default. Upgrade that legacy default to
+  // 30 days once, while retaining shorter durations a user had explicitly selected.
+  const policyVersion = Number(settings?.system?.tokenExpirationPolicyVersion || 0);
+  const storedDays = Number(settings?.system?.tokenExpirationDays);
+  let tokenDays = Number.isInteger(storedDays) && storedDays >= 1 && storedDays <= 30
+    ? storedDays
+    : 30;
+
+  if (policyVersion < 1) {
+    if (!storedDays || storedDays === 7) tokenDays = 30;
+    await Settings.findOneAndUpdate(
+      { userId: user._id },
+      {
+        $set: {
+          "system.tokenExpirationDays": tokenDays,
+          "system.tokenExpirationPolicyVersion": 1,
+        },
+        $setOnInsert: { userId: user._id },
+      },
+      { upsert: true, returnDocument: "after" }
+    );
+  }
+
+  const session = await createAuthSession(user, tokenDays);
 
   return {
     user: user.toObject(),
-    token,
-    tokenDays,
+    ...session,
   };
 }
 
