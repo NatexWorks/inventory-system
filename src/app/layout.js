@@ -23,6 +23,7 @@ export const metadata = {
   },
   description: "Manage products, track stock levels, monitor orders and review inventory activity from one simple inventory management dashboard.",
   applicationName: "Inventory System",
+  icons: { icon: "/icon.svg", shortcut: "/icon.svg" },
   manifest: "/manifest.webmanifest",
   appleWebApp: { capable: true, statusBarStyle: "default", title: "Inventory System" },
   keywords: [

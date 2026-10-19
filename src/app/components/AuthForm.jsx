@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { MdArrowForward, MdLockOutline, MdPersonOutline } from "react-icons/md";
+import { broadcastAuthChange } from "../lib/authBrowserSync";
 
 // Shared input styling so both login and signup screens stay visually consistent.
 const baseField =
@@ -30,6 +31,36 @@ export default function AuthForm({ mode = "login", redirectPath = "/", initialEm
   const [otpLoading, setOtpLoading] = useState(false);
   const [message, setMessage] = useState(initialMessage);
   const [error, setError] = useState("");
+
+  // If a valid persistent cookie already exists, continue into the workspace instead
+  // of asking the user to enter credentials again. Never read the HttpOnly token in JS.
+  useEffect(() => {
+    if (isSignup) return undefined;
+
+    let active = true;
+    async function resumeExistingSession() {
+      try {
+        const response = await fetch("/api/auth/me", {
+          credentials: "include",
+          cache: "no-store",
+        });
+        if (!response.ok || response.headers.get("x-inventory-offline-session") === "true") return;
+
+        const payload = await response.json();
+        if (active && payload?.data?.user) {
+          router.replace(redirectPath);
+          router.refresh();
+        }
+      } catch {
+        // Login remains available if the session check cannot reach the server.
+      }
+    }
+
+    resumeExistingSession();
+    return () => {
+      active = false;
+    };
+  }, [isSignup, redirectPath, router]);
 
   // Updates only the field that changed while keeping the rest of the form intact.
   function updateField(event) {
@@ -122,6 +153,7 @@ export default function AuthForm({ mode = "login", redirectPath = "/", initialEm
         setMessage(payload?.message || "Login successful");
       }
 
+      broadcastAuthChange("login");
       router.replace(redirectPath);
       router.refresh();
     } catch (err) {

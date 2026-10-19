@@ -83,31 +83,59 @@ export async function buildDashboardSummary(userId) {
 
 export async function buildCategoryAnalytics(userId) {
   await dbConnect();
+  const userObjectId = toObjectId(userId);
+  if (!userObjectId) throw new Error("Invalid workspace user");
 
-  const categories = await Category.find({ userId }).lean();
-  const products = await Product.find({ userId }).lean();
-  const orders = await Order.find({ userId, status: "COMPLETED" }).lean();
+  // Aggregate in MongoDB instead of loading every product and completed order
+  // and repeatedly filtering those large arrays in application memory.
+  const [categories, productCounts, salesByCategory] = await Promise.all([
+    Category.find({ userId }).select("name").lean(),
+    Product.aggregate([
+      { $match: { userId: userObjectId, categoryId: { $ne: null } } },
+      { $group: { _id: "$categoryId", productCount: { $sum: 1 } } },
+    ]),
+    Order.aggregate([
+      { $match: { userId: userObjectId, status: "COMPLETED" } },
+      { $unwind: { path: "$items", preserveNullAndEmptyArrays: false } },
+      {
+        $lookup: {
+          from: "products",
+          localField: "items.productId",
+          foreignField: "_id",
+          as: "product",
+        },
+      },
+      { $unwind: { path: "$product", preserveNullAndEmptyArrays: false } },
+      { $match: { "product.userId": userObjectId, "product.categoryId": { $ne: null } } },
+      {
+        $group: {
+          _id: "$product.categoryId",
+          revenue: {
+            $sum: {
+              $cond: [
+                { $ne: [{ $ifNull: ["$items.lineTotal", 0] }, 0] },
+                "$items.lineTotal",
+                { $multiply: [{ $ifNull: ["$items.price", 0] }, { $ifNull: ["$items.quantity", 0] }] },
+              ],
+            },
+          },
+          sales: { $sum: { $ifNull: ["$items.quantity", 0] } },
+        },
+      },
+    ]),
+  ]);
+
+  const productCountByCategory = new Map(productCounts.map((item) => [String(item._id), Number(item.productCount || 0)]));
+  const salesByCategoryId = new Map(salesByCategory.map((item) => [String(item._id), item]));
 
   const analytics = categories.map((category) => {
-    const matches = products.filter((product) => String(product.categoryId || "") === String(category._id));
-    const revenue = orders.reduce((sum, order) => {
-      const orderTotal = order.items
-        .filter((item) => matches.some((product) => String(product._id) === String(item.productId)))
-        .reduce((itemSum, item) => itemSum + Number(item.lineTotal || item.price * item.quantity || 0), 0);
-      return sum + orderTotal;
-    }, 0);
-    const sales = orders.reduce((sum, order) => {
-      const units = order.items
-        .filter((item) => matches.some((product) => String(product._id) === String(item.productId)))
-        .reduce((itemSum, item) => itemSum + Number(item.quantity || 0), 0);
-      return sum + units;
-    }, 0);
+    const categorySales = salesByCategoryId.get(String(category._id));
     return {
       categoryId: category._id,
       name: category.name,
-      productCount: matches.length,
-      revenue,
-      sales,
+      productCount: productCountByCategory.get(String(category._id)) || 0,
+      revenue: Number(categorySales?.revenue || 0),
+      sales: Number(categorySales?.sales || 0),
     };
   });
 

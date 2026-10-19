@@ -30,6 +30,15 @@ test.describe('Auth API', () => {
       });
       const signupPayload = await expectSuccess(signup, 201);
       expect(signupPayload.data.user).toMatchObject({ email: email.toLowerCase(), role: 'owner' });
+      expect(signupPayload.data.sessionId).toBeUndefined();
+
+      const signupCookie = signup.headers()['set-cookie'] || '';
+      expect(signupCookie).toMatch(/Max-Age=2592000/i);
+      expect(signupCookie).toMatch(/HttpOnly/i);
+      const signupSessionId = signupCookie.match(/inventory_saas_token=([^;]+)/)?.[1];
+      expect(signupSessionId).toBeTruthy();
+      expect(signupSessionId!.split('.')).toHaveLength(1);
+      expect(signupSessionId!.length).toBeGreaterThanOrEqual(40);
 
       const login = await request.post('/api/auth/login', {
         data: { email, password },
@@ -64,6 +73,12 @@ test.describe('Auth API', () => {
         data: { email, password: 'Password456!' },
       });
       await expectSuccess(relogin, 200);
+      expect(relogin.headers()['set-cookie'] || '').toMatch(/Max-Age=2592000/i);
+
+      const logout = await request.post('/api/auth/logout');
+      await expectSuccess(logout, 200);
+      const afterLogout = await request.get('/api/auth/me');
+      await expectFailure(afterLogout, 401);
     });
   });
 
@@ -202,4 +217,103 @@ test.describe('Auth API', () => {
       expect(String(payload.message)).toMatch(/already registered/i);
     });
   });
+
+  test('persists only one unread low-stock alert per stock shortage and starts a fresh event after recovery', async () => {
+    const seed = loadSeedData();
+    const unique = Date.now();
+    let productId: string | null = null;
+
+    await withApiContext(ownerStorageStatePath, async (request) => {
+      try {
+        const create = await request.post('/api/product', {
+          data: {
+            name: `Notification Test Product ${seed.runId} ${unique}`,
+            price: 100,
+            costPrice: 50,
+            stock: 1,
+            categoryId: seed.categories.accessories.id,
+            category: seed.categories.accessories.name,
+            sku: `NTEST-${seed.runId}-${unique}`,
+          },
+        });
+        const created = await expectSuccess(create, 200);
+        productId = String(created.data.product._id);
+
+        const firstResponse = await request.get('/api/notifications');
+        const first = await expectSuccess(firstResponse, 200);
+        expect(first.data.notifications.every((item: any) =>
+          item.kind === 'Low stock' || item.kind === 'Out of stock'
+        )).toBe(true);
+        const firstAlert = first.data.notifications.find(
+          (item: any) => item.productId === productId && item.active
+        );
+        expect(firstAlert).toBeTruthy();
+        expect(firstAlert.isRead).toBe(false);
+        expect(firstAlert.kind).toBe('Low stock');
+        const firstAlertId = firstAlert.id;
+
+        // Repeated polling while stock stays low must not produce another event.
+        const repeatedResponse = await request.get('/api/notifications');
+        const repeated = await expectSuccess(repeatedResponse, 200);
+        const repeatedAlerts = repeated.data.notifications.filter(
+          (item: any) => item.productId === productId && item.active
+        );
+        expect(repeatedAlerts).toHaveLength(1);
+        expect(repeatedAlerts[0].id).toBe(firstAlertId);
+        expect(repeatedAlerts[0].isRead).toBe(false);
+        expect(repeated.data.unreadCount).toBe(first.data.unreadCount);
+
+        const markRead = await request.patch('/api/notifications', {
+          data: { id: firstAlertId },
+        });
+        await expectSuccess(markRead, 200);
+
+        const readResponse = await request.get('/api/notifications');
+        const readPayload = await expectSuccess(readResponse, 200);
+        const readAlert = readPayload.data.notifications.find((item: any) => item.id === firstAlertId);
+        expect(readAlert?.isRead).toBe(true);
+        expect(readPayload.data.unreadCount).toBe(repeated.data.unreadCount - 1);
+
+        const restock = await request.put(`/api/product/${productId}`, { data: { stock: 20 } });
+        await expectSuccess(restock, 200);
+        const recoveredResponse = await request.get('/api/notifications');
+        const recovered = await expectSuccess(recoveredResponse, 200);
+        expect(recovered.data.notifications.some((item: any) => item.id === firstAlertId)).toBe(false);
+
+        // A fresh drop below the threshold creates a new unread notification ID.
+        const lowerStock = await request.put(`/api/product/${productId}`, { data: { stock: 1 } });
+        await expectSuccess(lowerStock, 200);
+        const newAlertResponse = await request.get('/api/notifications');
+        const newAlertPayload = await expectSuccess(newAlertResponse, 200);
+        const newAlert = newAlertPayload.data.notifications.find(
+          (item: any) => item.productId === productId && item.active
+        );
+        expect(newAlert).toBeTruthy();
+        expect(newAlert.id).not.toBe(firstAlertId);
+        expect(newAlert.isRead).toBe(false);
+        expect(newAlertPayload.data.unreadCount).toBe(recovered.data.unreadCount + 1);
+
+        await expectSuccess(await request.patch('/api/notifications', {
+          data: { id: newAlert.id },
+        }), 200);
+      } finally {
+        if (productId) {
+          await request.delete(`/api/product/${productId}`).catch(() => {});
+          const afterDelete = await request.get('/api/notifications').catch(() => null);
+          if (afterDelete?.ok()) {
+            const payload = await afterDelete.json().catch(() => null);
+            const testNotifications = (payload?.data?.notifications || [])
+              .filter((item: any) => item.productId === productId && !item.isRead);
+            for (const notification of testNotifications) {
+              await request.patch('/api/notifications', {
+                data: { id: notification.id },
+              }).catch(() => {});
+            }
+          }
+        }
+      }
+    });
+  });
+
+
 });

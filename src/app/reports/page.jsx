@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import {
   MdDownload,
   MdFileDownload,
@@ -203,6 +203,7 @@ export default function ReportsPage() {
   const [period, setPeriod] = useState("month");
   const [reportType, setReportType] = useState("sales");
   const [search, setSearch] = useState("");
+  const deferredSearch = useDeferredValue(search);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
@@ -236,7 +237,8 @@ export default function ReportsPage() {
   const data = report?.operationalReports || null;
   const selectedPeriod = PERIODS.find((item) => item.value === period) || PERIODS[1];
   const selectedReport = REPORT_TYPES.find((item) => item.value === reportType) || REPORT_TYPES[0];
-  const table = useMemo(() => makeReportTable(reportType, data, search, summary?.lowStockThreshold ?? 5), [reportType, data, search, summary?.lowStockThreshold]);
+  // Keep text input responsive while filtering potentially large report tables in the background.
+  const table = useMemo(() => makeReportTable(reportType, data, deferredSearch, summary?.lowStockThreshold ?? 5), [reportType, data, deferredSearch, summary?.lowStockThreshold]);
   // eslint-disable-next-line react-hooks/set-state-in-effect -- Reset report pagination when its filters change.
   useEffect(() => { setRowsToShow(10); }, [reportType, period, search]);
 
@@ -486,7 +488,7 @@ export default function ReportsPage() {
                 ))}</tbody>
             </table>
           </div>
-          {table.rows.length > 10 ? <div className="mt-3 flex flex-wrap items-center justify-between gap-3"><p className="text-xs text-slate-500">Showing {Math.min(rowsToShow, table.rows.length).toLocaleString("en-IN")} of {table.rows.length.toLocaleString("en-IN")} entries. Exports include every entry.</p>{rowsToShow < table.rows.length ? <button type="button" onClick={() => setRowsToShow((current) => Math.min(current + 10, table.rows.length))} className="rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-700 hover:bg-indigo-100">View more</button> : <button type="button" onClick={() => setRowsToShow(10)} className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600">Show less</button>}</div> : null}
+          {table.rows.length > 10 ? <div className="mt-3 flex flex-wrap items-center justify-between gap-3"><p className="text-xs text-slate-500">Showing {Math.min(rowsToShow, table.rows.length).toLocaleString("en-IN")} of {table.rows.length.toLocaleString("en-IN")} entries. Exports include every entry.</p>{rowsToShow < table.rows.length ? <button type="button" onClick={() => setRowsToShow((current) => Math.min(current + 10, table.rows.length))} className="rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-700 hover:bg-indigo-100">Show more</button> : <button type="button" onClick={() => setRowsToShow(10)} className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600">Show less</button>}</div> : null}
         </section>
 
         <section className="grid gap-5 xl:grid-cols-2">

@@ -1,1 +1,26 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="16" fill="#4f46e5"/><g fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="4"><path d="M12 20 32 10l20 10-20 10-20-10Z"/><path d="M12 32 32 42l20-10M12 44l20 10 20-10M12 20v24M52 20v24"/></g></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 160" role="img" aria-label="Inventory boxes">
+  <rect width="200" height="160" fill="#fff"/>
+  <g stroke="#231f20" stroke-width="5" stroke-linejoin="round" stroke-linecap="round">
+    <g>
+      <path d="M62 63 100 84 62 105 24 84Z" fill="#fff"/>
+      <path d="M24 84 62 105 62 146 24 125Z" fill="#fff"/>
+      <path d="M62 105 100 84 100 125 62 146Z" fill="#231f20"/>
+      <path d="M43 74 81 95 72 100 34 79Z" fill="#fff" stroke-width="4"/>
+      <path d="M78 96 88 90 88 131 78 136Z" fill="#fff" stroke-width="4"/>
+    </g>
+    <g>
+      <path d="M138 63 176 84 138 105 100 84Z" fill="#fff"/>
+      <path d="M100 84 138 105 138 146 100 125Z" fill="#fff"/>
+      <path d="M138 105 176 84 176 125 138 146Z" fill="#231f20"/>
+      <path d="M119 74 157 95 148 100 110 79Z" fill="#fff" stroke-width="4"/>
+      <path d="M154 96 164 90 164 131 154 136Z" fill="#fff" stroke-width="4"/>
+    </g>
+    <g>
+      <path d="M100 8 137 28 100 49 63 28Z" fill="#fff"/>
+      <path d="M63 28 100 49 100 89 63 68Z" fill="#fff"/>
+      <path d="M100 49 137 28 137 68 100 89Z" fill="#231f20"/>
+      <path d="M81 19 119 39 110 44 72 24Z" fill="#fff" stroke-width="4"/>
+      <path d="M116 40 126 34 126 74 116 79Z" fill="#fff" stroke-width="4"/>
+    </g>
+  </g>
+</svg>

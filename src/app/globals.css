@@ -12,280 +12,334 @@
   --font-mono: var(--font-geist-mono);
 }
 
+html { -webkit-text-size-adjust: 100%; }
+
 body {
+  min-width: 320px;
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
 }
 
-.product-description{
+.product-description {
   border: 2px solid rgb(214, 206, 206);
   border-radius: 5px;
   padding: 5px;
-
 }
-.product-description button{
+
+.product-description button {
   background-color: #c3bcbc;
-  border:2px ridge #928e8e;
+  border: 2px ridge #928e8e;
 }
-.btn::after{
+
+.btn::after {
   background-color: #c3bcbc;
-  border:2px ridge #928e8e;
+  border: 2px ridge #928e8e;
 }
 
+img, video, canvas, svg { max-width: 100%; }
+input, select, textarea { max-width: 100%; }
+.wrap-safe { overflow-wrap: anywhere; }
 
-/* Responsive safety net: preserve every field and column without page-level overflow. */
-html {
-  width: 100%;
-  min-width: 320px;
-  overflow-x: clip;
-  -webkit-text-size-adjust: 100%;
-}
-
-body {
-  width: 100%;
-  min-width: 320px;
-  overflow-x: clip;
-}
-
-img,
-video,
-canvas,
-svg {
+/* Wide tables scroll within their own panel instead of expanding the page. */
+.overflow-x-auto {
+  min-width: 0;
   max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
 }
-
-input,
-select,
-textarea {
-  max-width: 100%;
-}
-
-.wrap-safe {
-  overflow-wrap: anywhere;
+.overflow-x-auto table {
+  width: max-content;
+  min-width: 100%;
 }
 
 @media (max-width: 639px) {
-  /* Wide tables remain complete and scroll inside their own region. */
-  table {
-    max-width: 100%;
-  }
-
-  main {
+  /* Constraints are scoped to the signed-in workspace, not the public landing page. */
+  .app-main-content,
+  .app-main-content > *,
+  .app-main-content section,
+  .app-main-content article,
+  .app-main-content form,
+  .app-main-content [class*="grid"],
+  .app-main-content [class*="flex"] {
     min-width: 0;
   }
 
-  button,
-  input,
-  select,
-  textarea {
-    scroll-margin-block: 5rem;
-  }
-
-  /* Avoid iOS auto-zoom when focusing form fields. */
-  input,
-  select,
-  textarea {
-    font-size: max(16px, 1em);
-  }
-
-  /* Keep dialogs and dropdowns inside narrow screens. */
-  [role="dialog"],
-  [role="menu"] {
-    max-width: calc(100vw - 1.5rem);
-  }
-}
-
-
-/* Compact mobile workspace: keep content left-aligned, readable and inside the viewport. */
-@media (max-width: 639px) {
-  main,
-  main > div,
-  main > div > div {
-    min-width: 0;
-    max-width: 100%;
-  }
-
-  main [class~="p-5"] {
+  /* Keep cards and gutters compact on phones without changing the landing page. */
+  .app-main-content [class~="p-4"],
+  .app-main-content [class~="p-5"] {
     padding: 0.875rem !important;
   }
-
-  main [class~="p-6"] {
+  .app-main-content [class~="p-6"] {
     padding: 1rem !important;
   }
-
-  main [class~="px-5"] {
+  .app-main-content [class~="px-4"] {
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+  }
+  .app-main-content [class~="px-5"] {
     padding-left: 0.875rem !important;
     padding-right: 0.875rem !important;
   }
-
-  main [class~="px-6"] {
+  .app-main-content [class~="px-6"] {
     padding-left: 1rem !important;
     padding-right: 1rem !important;
   }
-
-  main [class~="py-5"] {
+  .app-main-content [class~="py-4"] {
+    padding-top: 0.75rem !important;
+    padding-bottom: 0.75rem !important;
+  }
+  .app-main-content [class~="py-5"] {
     padding-top: 0.875rem !important;
     padding-bottom: 0.875rem !important;
   }
-
-  main [class~="py-6"] {
+  .app-main-content [class~="py-6"] {
     padding-top: 1rem !important;
     padding-bottom: 1rem !important;
   }
+  .app-main-content [class~="gap-4"] { gap: 0.75rem !important; }
+  .app-main-content [class~="gap-5"],
+  .app-main-content [class~="gap-6"] { gap: 0.875rem !important; }
+  .app-main-content [class~="mt-5"],
+  .app-main-content [class~="mt-6"] { margin-top: 0.875rem !important; }
+  .app-main-content [class~="rounded-3xl"],
+  .app-main-content [class~="rounded-[28px]"],
+  .app-main-content [class~="rounded-[30px]"] { border-radius: 1rem !important; }
 
-  main [class~="gap-6"] {
-    gap: 1rem !important;
+  .app-main-content [class*="flex"] > *,
+  .app-main-content [class*="grid"] > * {
+    min-width: 0;
   }
 
-  main [class~="gap-5"] {
-    gap: 0.75rem !important;
-  }
-
-  main [class~="mt-6"] {
-    margin-top: 1rem !important;
-  }
-
-  main [class~="rounded-[28px]"] {
-    border-radius: 1rem !important;
-  }
-
-  main h1 {
+  .app-main-content h1,
+  .app-main-content h2,
+  .app-main-content h3,
+  .app-main-content p,
+  .app-main-content span,
+  .app-main-content label,
+  .app-main-content [role="status"],
+  .app-main-content [role="alert"] {
+    min-width: 0;
     overflow-wrap: anywhere;
-    font-size: clamp(1.35rem, 6vw, 1.75rem);
-    line-height: 1.2;
   }
 
-  main h2 {
-    overflow-wrap: anywhere;
+  .app-main-content { width: 100%; }
+  .app-main-content button,
+  .app-main-content a[role="button"],
+  .app-main-content input,
+  .app-main-content select,
+  .app-main-content textarea {
+    min-width: 0;
+    max-width: 100%;
   }
+
+  .app-main-content button,
+  .app-main-content a[role="button"] { min-height: 2.5rem; }
+
+  .app-main-content input,
+  .app-main-content select,
+  .app-main-content textarea {
+    font-size: max(16px, 1em);
+    scroll-margin-block: 5rem;
+  }
+
+  .app-main-content .overflow-x-auto { width: 100%; max-width: 100%; }
 
   .report-page {
-    padding-left: 0.625rem !important;
-    padding-right: 0.625rem !important;
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
   }
-
-  .report-page-content {
+  .report-page .report-page-content {
+    width: 100%;
     margin-left: 0 !important;
     margin-right: 0 !important;
     gap: 0.75rem !important;
   }
-
-  .report-page [class~="px-4"] {
-    padding-left: 0.75rem;
-    padding-right: 0.75rem;
-  }
-
-  .report-page table {
-    font-size: 0.75rem;
-  }
-
-  .report-page th,
-  .report-page td {
-    padding: 0.55rem 0.65rem;
-  }
-
-  .report-page[data-report-size="large"] .report-card-large {
-    padding: 1rem !important;
-  }
-}
-
-
-/* Final mobile fit rules: reduce oversized cards and check content rather than hiding overflow. */
-@media (max-width: 639px) {
-  main,
-  main > div,
-  main section,
-  main article {
-    min-width: 0;
-    max-width: 100%;
-  }
-
-  main [class~="p-4"],
-  main [class~="p-5"] {
-    padding: 0.75rem !important;
-  }
-
-  main [class~="px-4"],
-  main [class~="px-5"],
-  main [class~="px-6"] {
-    padding-left: 0.75rem !important;
-    padding-right: 0.75rem !important;
-  }
-
-  main [class~="py-4"],
-  main [class~="py-5"],
-  main [class~="py-6"] {
-    padding-top: 0.75rem !important;
-    padding-bottom: 0.75rem !important;
-  }
-
-  main [class~="gap-4"] {
-    gap: 0.75rem !important;
-  }
-
-  main [class~="gap-5"],
-  main [class~="gap-6"] {
-    gap: 0.875rem !important;
-  }
-
-  main [class~="mt-5"],
-  main [class~="mt-6"] {
-    margin-top: 0.875rem !important;
-  }
-
-  main [class~="rounded-3xl"],
-  main [class~="rounded-[28px]"],
-  main [class~="rounded-[30px]"] {
-    border-radius: 1rem !important;
-  }
-
-  main h2,
-  main h3,
-  main p,
-  main span,
-  main button,
-  main a {
-    min-width: 0;
-    overflow-wrap: anywhere;
-  }
-
-  .report-page {
-    padding-left: 0.5rem !important;
-    padding-right: 0.5rem !important;
-  }
-
-  .report-page-content {
-    gap: 0.75rem !important;
-  }
-
-  .report-page-content > section {
-    min-width: 0;
-  }
-
-  .report-page [class~="p-5"],
-  .report-page [class~="p-4"] {
-    padding: 0.75rem !important;
-  }
-
-  .report-page[data-report-size="large"] .report-card-large {
-    padding: 0.75rem !important;
-  }
-
+  .report-page .report-page-content > section { min-width: 0; }
+  .report-page [data-testid="report-size-toggle"],
+  .report-page button { max-width: 100%; white-space: normal; }
+  .report-page table { font-size: 0.75rem; }
+  .report-page th, .report-page td { padding: 0.5rem; }
   .report-page svg[aria-label^="Sales revenue graph"] {
+    max-width: 100%;
     height: 220px !important;
   }
-
   .report-page .report-charts-large svg[aria-label^="Sales revenue graph"] {
     height: 300px !important;
   }
 
-  .report-page table {
-    font-size: 0.75rem;
+  /* Reduce continuous decorative work on touch devices. */
+  .landing-hero-backdrop, .landing-icon-bob { animation: none; }
+  .landing-preview-card:hover { transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-header,
+  .landing-enter,
+  .landing-hero-backdrop,
+  .landing-preview-enter,
+  .landing-preview-tile,
+  .landing-icon-bob,
+  .landing-progress-fill,
+  .landing-preview-card,
+  .home-page a,
+  .home-page article,
+  .home-page article span,
+  html.motion-reveal-ready .scroll-reveal,
+  html.motion-reveal-ready .scroll-reveal:not(.is-visible),
+  html.motion-reveal-ready .scroll-reveal.is-visible {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+}
+
+/* Lightweight landing-page motion: transforms and opacity keep animations smooth. */
+@keyframes landingFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes landingFadeUp {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 16px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes landingSlideIn {
+  from {
+    opacity: 0;
+    transform: translate3d(24px, 0, 0) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes landingGlowDrift {
+  from { transform: translate3d(-4px, 5px, 0) scale(0.98); opacity: 0.65; }
+  to { transform: translate3d(6px, -5px, 0) scale(1.04); opacity: 0.95; }
+}
+
+@keyframes landingProgressFill {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+@keyframes landingIconFloat {
+  from { transform: translateY(0); }
+  to { transform: translateY(-3px); }
+}
+
+.landing-header {
+  animation: landingFadeIn 420ms ease-out both;
+}
+
+.landing-enter {
+  opacity: 0;
+  animation: landingFadeUp 580ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.landing-delay-1 { animation-delay: 80ms; }
+.landing-delay-2 { animation-delay: 160ms; }
+.landing-delay-3 { animation-delay: 250ms; }
+.landing-delay-4 { animation-delay: 340ms; }
+.landing-delay-5 { animation-delay: 430ms; }
+
+.landing-hero-backdrop {
+  transform-origin: 80% 10%;
+  animation: landingGlowDrift 16s ease-in-out 500ms infinite alternate;
+}
+
+.landing-preview-enter {
+  opacity: 0;
+  animation: landingSlideIn 760ms cubic-bezier(0.22, 1, 0.36, 1) 180ms both;
+}
+
+.landing-preview-card {
+  transition: transform 260ms ease, box-shadow 260ms ease;
+}
+
+.landing-preview-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 28px 70px rgba(79, 70, 229, 0.13);
+}
+
+.landing-preview-tile {
+  opacity: 0;
+  animation: landingFadeUp 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.landing-preview-tile-1 { animation-delay: 460ms; }
+.landing-preview-tile-2 { animation-delay: 560ms; }
+
+.landing-icon-bob {
+  animation: landingIconFloat 3.8s ease-in-out 1.3s infinite alternate;
+}
+
+.landing-progress-fill {
+  transform: scaleX(0);
+  transform-origin: left center;
+  animation: landingProgressFill 900ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.landing-progress-fill-1 { animation-delay: 620ms; }
+.landing-progress-fill-2 { animation-delay: 760ms; }
+.landing-progress-fill-3 { animation-delay: 900ms; }
+
+.home-page a:focus-visible {
+  outline: 3px solid rgba(99, 102, 241, 0.65);
+  outline-offset: 3px;
+}
+
+/* The observer only hides reveal items after JavaScript has initialised. */
+html.motion-reveal-ready .scroll-reveal:not(.is-visible) {
+  opacity: 0;
+  transform: translate3d(0, 18px, 0);
+}
+
+html.motion-reveal-ready .scroll-reveal.is-visible {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+  transition:
+    opacity 540ms ease,
+    transform 540ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-header,
+  .landing-enter,
+  .landing-hero-backdrop,
+  .landing-preview-enter,
+  .landing-preview-tile,
+  .landing-icon-bob,
+  .landing-progress-fill {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
   }
 
-  .report-page th,
-  .report-page td {
-    padding: 0.5rem;
+  .landing-preview-card,
+  .home-page a,
+  .home-page article,
+  .home-page article span {
+    transition: none !important;
+  }
+
+  html.motion-reveal-ready .scroll-reveal,
+  html.motion-reveal-ready .scroll-reveal:not(.is-visible),
+  html.motion-reveal-ready .scroll-reveal.is-visible {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
   }
 }

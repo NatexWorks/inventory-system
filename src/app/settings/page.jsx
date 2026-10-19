@@ -34,7 +34,7 @@ function Toggle({ label, checked, onChange, helper }) {
 const defaultForm = {
   lowStockThreshold: 5, barcodeRules: "Unique barcodes per sellable unit", autoBarcodeGeneration: false,
   barcodeMode: "optional", invoiceEnabled: true, taxPercentage: 0, invoiceFormat: "simple",
-  offlineMode: true, sessionTimeoutMinutes: 30, tokenExpirationDays: 7, storeName: "", storeEmail: "", storeAddress: "",
+  offlineMode: true, sessionTimeoutMinutes: 30, tokenExpirationDays: 30, storeName: "", storeEmail: "", storeAddress: "",
   lowStockAlerts: true, orderUpdates: true, weeklySummary: true,
 };
 
@@ -83,7 +83,9 @@ export default function SettingsPage() {
           invoiceFormat: current?.billing?.invoiceFormat ?? "simple",
           offlineMode: current?.system?.offlineMode ?? true,
           sessionTimeoutMinutes: current?.system?.sessionTimeoutMinutes ?? 30,
-          tokenExpirationDays: current?.system?.tokenExpirationDays ?? 7,
+          tokenExpirationDays: Number(current?.system?.tokenExpirationPolicyVersion || 0) < 1 && Number(current?.system?.tokenExpirationDays) === 7
+            ? 30
+            : current?.system?.tokenExpirationDays ?? 30,
         });
       } catch (err) {
         if (active) setError(err.message || "Could not load settings");
@@ -256,7 +258,7 @@ export default function SettingsPage() {
             <Field label="Barcode Mode"><select className={inputClass} value={form.barcodeMode} onChange={(e) => update("barcodeMode", e.target.value)}><option value="optional">Optional</option><option value="strict">Strict</option></select><span className="mt-2 block text-xs text-slate-500">Strict mode requires a barcode unless auto-generation is enabled.</span></Field>
             <Field label="Auto Barcode Generation"><select className={inputClass} value={String(form.autoBarcodeGeneration)} onChange={(e) => update("autoBarcodeGeneration", e.target.value === "true")}><option value="false">Disabled</option><option value="true">Enabled</option></select></Field>
             <Field label="Session Timeout (minutes)"><input className={inputClass} type="number" min="5" max="1440" value={form.sessionTimeoutMinutes} onChange={(e) => update("sessionTimeoutMinutes", e.target.value)} /></Field>
-            <Field label="Login Token Expiry"><select className={inputClass} value={String(form.tokenExpirationDays)} onChange={(e) => update("tokenExpirationDays", Number(e.target.value))}><option value="1">1 day</option><option value="3">3 days</option><option value="7">7 days (default)</option><option value="14">14 days</option><option value="30">30 days</option></select><span className="mt-2 block text-xs leading-relaxed text-slate-500">Your signed-in token expires after this period. Changes apply the next time you sign in.</span></Field>
+            <Field label="Login Token Expiry"><select className={inputClass} value={String(form.tokenExpirationDays)} onChange={(e) => update("tokenExpirationDays", Number(e.target.value))}><option value="1">1 day</option><option value="3">3 days</option><option value="7">7 days</option><option value="14">14 days</option><option value="30">30 days</option></select><span className="mt-2 block text-xs leading-relaxed text-slate-500">Your session stays signed in across browser restarts and expires after this period. New accounts default to 30 days; changes apply on your next login.</span></Field>
             <Field label="Offline Mode"><select className={inputClass} value={String(form.offlineMode)} onChange={(e) => update("offlineMode", e.target.value === "true")}><option value="true">Enabled</option><option value="false">Disabled</option></select></Field>
             <Toggle label="Invoice Printing" helper="When disabled, invoice print actions are hidden." checked={form.invoiceEnabled} onChange={(value) => update("invoiceEnabled", value)} />
           </div>

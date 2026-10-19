@@ -100,6 +100,10 @@ export default function OrdersPage() {
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
   const [showAllQuickProducts, setShowAllQuickProducts] = useState(false);
+  const [isPhoneLayout, setIsPhoneLayout] = useState(false);
+  const [showBillingRules, setShowBillingRules] = useState(false);
+  const [loadingMoreProducts, setLoadingMoreProducts] = useState(false);
+  const [productPagination, setProductPagination] = useState({ page: 1, limit: 30, totalProducts: 0, totalPages: 1 });
   const [actionMessage, setActionMessage] = useState("");
   const [draftMessage, setDraftMessage] = useState("");
   const [scanStatus, setScanStatus] = useState("Camera scanner ready");
@@ -122,6 +126,18 @@ export default function OrdersPage() {
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
     };
+  }, []);
+
+  // Keep phone-only controls compact without changing desktop defaults.
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 639px)");
+    const applyViewport = () => {
+      setIsPhoneLayout(media.matches);
+      setShowBillingRules(!media.matches);
+    };
+    applyViewport();
+    media.addEventListener("change", applyViewport);
+    return () => media.removeEventListener("change", applyViewport);
   }, []);
 
   useEffect(() => {
@@ -157,13 +173,14 @@ export default function OrdersPage() {
       try {
         setProductLoading(true);
         const [productsResponse, settingsResponse] = await Promise.all([
-          fetch("/api/product?limit=100"),
-          fetch("/api/settings"),
+          fetch("/api/product?page=1&limit=30", { credentials: "include", cache: "no-store" }),
+          fetch("/api/settings", { credentials: "include", cache: "no-store" }),
         ]);
 
         if (productsResponse.ok) {
           const productsData = await productsResponse.json();
           setProducts(productsData?.data?.products || []);
+          setProductPagination(productsData?.data?.pagination || { page: 1, limit: 30, totalProducts: productsData?.data?.products?.length || 0, totalPages: 1 });
         }
 
         if (settingsResponse.ok) {
@@ -192,13 +209,45 @@ export default function OrdersPage() {
   }
 
   async function refreshProducts() {
-    const response = await fetch("/api/product?limit=100");
+    // Keep the refreshed list aligned with the same 30-product paging used by Load more.
+    const limit = 30;
+    const response = await fetch(`/api/product?page=1&limit=${limit}`, { credentials: "include", cache: "no-store" });
     if (!response.ok) {
       throw new Error("Failed to load products");
     }
 
     const data = await response.json();
     setProducts(data?.data?.products || []);
+    setProductPagination(data?.data?.pagination || { page: 1, limit, totalProducts: products.length, totalPages: 1 });
+  }
+
+  async function loadMoreProducts() {
+    if (loadingMoreProducts || productPagination.page >= productPagination.totalPages) return;
+
+    const nextPage = productPagination.page + 1;
+    setLoadingMoreProducts(true);
+    try {
+      const response = await fetch(`/api/product?page=${nextPage}&limit=30`, { credentials: "include", cache: "no-store" });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload?.message || "Failed to load more products");
+
+      const nextProducts = payload?.data?.products || [];
+      setProducts((current) => {
+        const merged = new Map(current.map((product) => [String(product._id), product]));
+        for (const product of nextProducts) merged.set(String(product._id), product);
+        return Array.from(merged.values());
+      });
+      setProductPagination(payload?.data?.pagination || {
+        page: nextPage,
+        limit: 30,
+        totalProducts: products.length + nextProducts.length,
+        totalPages: nextPage,
+      });
+    } catch (loadError) {
+      setDraftMessage(loadError.message || "Failed to load more products.");
+    } finally {
+      setLoadingMoreProducts(false);
+    }
   }
 
   function getAvailableStock(productId) {
@@ -609,12 +658,14 @@ export default function OrdersPage() {
     },
   ];
 
-  const quickAddProducts = showAllQuickProducts ? products : products.slice(0, 4);
-  const canExpandQuickProducts = products.length > 4;
+  const initialQuickAddLimit = isPhoneLayout ? 6 : 4;
+  const quickAddProducts = showAllQuickProducts ? products : products.slice(0, initialQuickAddLimit);
+  const canExpandQuickProducts = products.length > initialQuickAddLimit
+    || productPagination.page < productPagination.totalPages;
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-[radial-gradient(circle_at_top_left,_rgba(99,102,241,0.14),_transparent_30%),linear-gradient(180deg,#eff4ff_0%,#f8fbff_45%,#eef2ff_100%)] px-4 py-4 sm:px-6 sm:py-6 lg:px-8">
-      <div className="mx-auto flex max-w-7xl flex-col gap-6">
+    <div className="min-h-[calc(100vh-4rem)] min-w-0 overflow-x-clip bg-[radial-gradient(circle_at_top_left,_rgba(99,102,241,0.14),_transparent_30%),linear-gradient(180deg,#eff4ff_0%,#f8fbff_45%,#eef2ff_100%)] px-3 py-3 sm:px-6 sm:py-6 lg:px-8">
+      <div className="mx-auto flex w-full min-w-0 max-w-7xl flex-col gap-4 sm:gap-6">
         <section className="rounded-[28px] border border-white/70 bg-white/80 px-5 py-5 shadow-[0_24px_70px_rgba(15,23,42,0.08)] backdrop-blur">
           <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
             <div>
@@ -637,31 +688,31 @@ export default function OrdersPage() {
           </div>
         </section>
 
-        <section className="grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
-          <div className="rounded-[28px] border border-white/70 bg-white/90 shadow-[0_24px_70px_rgba(15,23,42,0.08)] backdrop-blur">
-            <div className="flex items-start justify-between gap-4 border-b border-slate-100 px-5 py-4">
+        <section className="grid min-w-0 gap-4 sm:gap-5 xl:grid-cols-[1.2fr_0.8fr]">
+          <div className="min-w-0 max-w-full rounded-[28px] border border-white/70 bg-white/90 shadow-[0_24px_70px_rgba(15,23,42,0.08)] backdrop-blur">
+            <div className="flex min-w-0 flex-col gap-3 border-b border-slate-100 px-4 py-4 sm:flex-row sm:items-start sm:justify-between sm:gap-4 sm:px-5">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.28em] text-indigo-500">Billing</p>
                 <h2 className="mt-2 text-xl font-bold text-slate-900">Orders Page POS</h2>
                 <p className="mt-1 text-sm text-slate-500">Barcode scan, draft cart, and checkout live here only.</p>
               </div>
-              <div className="flex items-center gap-2 rounded-2xl bg-slate-50 px-3 py-2 text-sm font-medium text-slate-600">
+              <div className="inline-flex w-fit max-w-full shrink-0 items-center gap-2 rounded-2xl bg-slate-50 px-3 py-2 text-sm font-medium text-slate-600">
                 {isOffline ? <MdWifiOff className="text-amber-500" /> : <MdSync className="text-emerald-500" />}
                 {isOffline ? "Offline" : "Online"}
               </div>
             </div>
 
-            <div className="grid gap-4 px-5 py-5 lg:grid-cols-[1.1fr_0.9fr]">
-              <div className="space-y-4">
+            <div className="grid min-w-0 gap-4 px-3 py-4 sm:px-5 sm:py-5 lg:grid-cols-[1.1fr_0.9fr]">
+              <div className="min-w-0 space-y-4">
                 <BarcodeCameraScanner
                   onScan={(code) => processBarcodeCode(code, "camera")}
                   onStatus={setScanStatus}
                   className="shadow-sm"
                 />
 
-                <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
+                <div className="min-w-0 rounded-3xl border border-slate-200 bg-slate-50 p-3 sm:p-4">
                   <label className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Barcode Scanner</label>
-                  <div className="mt-3 flex gap-3">
+                  <div className="mt-3 flex min-w-0 flex-col gap-2 sm:flex-row sm:gap-3">
                     <input
                       value={barcode}
                       onChange={(event) => setBarcode(event.target.value)}
@@ -671,29 +722,29 @@ export default function OrdersPage() {
                     />
                     <button
                       onClick={handleScan}
-                      className="inline-flex items-center gap-2 rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-200"
+                      className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-200 sm:w-auto"
                     >
                       <MdOutlineQrCodeScanner className="text-lg" />
                       Scan
                     </button>
                   </div>
-                  <p className="mt-3 text-xs text-slate-500">{scanStatus}</p>
+                  <p className="mt-3 min-w-0 break-words text-xs text-slate-500">{scanStatus}</p>
                 </div>
 
                 {draftMessage ? (
                   <div className="rounded-3xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm text-indigo-700">{draftMessage}</div>
                 ) : null}
 
-                <div className="rounded-3xl border border-slate-200 bg-white">
-                  <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+                <div className="min-w-0 max-w-full rounded-3xl border border-slate-200 bg-white">
+                  <div className="flex min-w-0 flex-col gap-2 border-b border-slate-100 px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-4">
                     <div className="flex items-center gap-2">
                       <MdOutlineInventory2 className="text-lg text-indigo-600" />
                       <h3 className="font-semibold text-slate-900">Quick Add Products</h3>
                     </div>
-                    <p className="text-xs text-slate-500">{productLoading ? "Loading..." : `${products.length} available`}</p>
+                    <p className="max-w-full break-words text-xs text-slate-500 sm:text-right">{productLoading ? "Loading..." : `${productPagination.totalProducts || products.length} available`}</p>
                   </div>
                   <div className="max-h-[330px] overflow-auto p-4">
-                    <div className="grid gap-3 sm:grid-cols-2">
+                    <div data-testid="quick-add-product-list" className="grid gap-3 sm:grid-cols-2">
                       {quickAddProducts.map((product) => (
                         <button
                           key={product._id}
@@ -708,27 +759,52 @@ export default function OrdersPage() {
                       ))}
                     </div>
                     {canExpandQuickProducts ? (
-                      <div className="mt-4 flex justify-center">
-                        <button
-                          type="button"
-                          onClick={() => setShowAllQuickProducts((current) => !current)}
-                          className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700"
-                        >
-                          {showAllQuickProducts ? "Show less" : `Show more (${products.length - 4})`}
-                        </button>
+                      <div className="mt-4 flex flex-wrap justify-center gap-2">
+                        {!showAllQuickProducts ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowAllQuickProducts(true);
+                              if (productPagination.page < productPagination.totalPages) void loadMoreProducts();
+                            }}
+                            className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700"
+                          >
+                            Show more ({Math.max(0, productPagination.totalProducts - initialQuickAddLimit)})
+                          </button>
+                        ) : (
+                          <>
+                            {productPagination.page < productPagination.totalPages ? (
+                              <button
+                                type="button"
+                                onClick={() => void loadMoreProducts()}
+                                disabled={loadingMoreProducts}
+                                className="rounded-full border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-100 disabled:cursor-wait disabled:opacity-60"
+                              >
+                                {loadingMoreProducts ? "Loading products..." : "Load more products"}
+                              </button>
+                            ) : null}
+                            <button
+                              type="button"
+                              onClick={() => setShowAllQuickProducts(false)}
+                              className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700"
+                            >
+                              Show less
+                            </button>
+                          </>
+                        )}
                       </div>
                     ) : null}
                   </div>
                 </div>
               </div>
 
-              <aside className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
+              <aside className="min-w-0 max-w-full rounded-3xl border border-slate-200 bg-slate-50 p-3 sm:p-4">
+                <div className="flex min-w-0 flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex min-w-0 items-center gap-2">
                     <MdShoppingCart className="text-lg text-indigo-600" />
-                    <h3 className="font-semibold text-slate-900">{editingOrderId ? "Edit Pending Order" : "Draft Cart"}</h3>
+                    <h3 className="min-w-0 break-words font-semibold text-slate-900">{editingOrderId ? "Edit Pending Order" : "Draft Cart"}</h3>
                   </div>
-                  <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-500">{cart.length} items</span>
+                  <span className="shrink-0 rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-500">{cart.length} items</span>
                 </div>
 
                 {editingOrderId ? <p role="status" className="mt-3 rounded-2xl bg-indigo-50 p-3 text-xs text-indigo-700">Editing order {orders.find((order) => String(order._id) === String(editingOrderId))?.orderNumber || ""}. Stock changes only when the order is approved.</p> : null}
@@ -806,10 +882,10 @@ export default function OrdersPage() {
                   </div>
                 </div>
 
-                <div className="mt-4 flex gap-3">
+                <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:gap-3">
                   <button
                     onClick={handleCheckout}
-                    className="flex-1 rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-200"
+                    className="min-h-11 w-full min-w-0 rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-200 sm:flex-1"
                   >
                     {editingOrderId ? "Save Order Changes" : "Create Pending Bill"}
                   </button>
@@ -820,7 +896,7 @@ export default function OrdersPage() {
                       setEditingOrderId(null);
                       window.localStorage.removeItem(DRAFT_KEY);
                     }}
-                    className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700"
+                    className="min-h-11 w-full shrink-0 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 sm:w-auto"
                   >
                     {editingOrderId ? "Cancel Edit" : "Clear"}
                   </button>
@@ -829,10 +905,21 @@ export default function OrdersPage() {
             </div>
           </div>
 
-          <div className="rounded-[28px] border border-white/70 bg-white/90 p-5 shadow-[0_24px_70px_rgba(15,23,42,0.08)] backdrop-blur">
-            <h3 className="text-lg font-semibold text-slate-900">Billing Rules</h3>
-            <p className="mt-1 text-sm text-slate-500">These settings are loaded from the backend.</p>
-            <div className="mt-4 space-y-3">
+          <div className="min-w-0 max-w-full overflow-x-clip rounded-[28px] border border-white/70 bg-white/90 p-3 shadow-[0_24px_70px_rgba(15,23,42,0.08)] backdrop-blur sm:p-5">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h3 className="min-w-0 text-lg font-semibold text-slate-900">Billing Rules</h3>
+              <button
+                type="button"
+                onClick={() => setShowBillingRules((visible) => !visible)}
+                aria-expanded={showBillingRules}
+                aria-controls="billing-rules-content"
+                className="shrink-0 rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-700 transition hover:bg-indigo-100 sm:text-sm"
+              >
+                {showBillingRules ? "Hide rules" : "Show rules"}
+              </button>
+            </div>
+            <div id="billing-rules-content" className={showBillingRules ? "mt-4 space-y-3" : "hidden"}>
+              <p className="text-sm text-slate-500">These settings are loaded from the backend.</p>
               <div className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-600">
                 <p className="font-semibold text-slate-900">Stock deduction</p>
                 <p className="mt-1">Stock is deducted only after owner approval.</p>

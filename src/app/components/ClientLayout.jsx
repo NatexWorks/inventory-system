@@ -7,6 +7,7 @@ import { MdDashboard, MdInventory, MdShoppingCart, MdMenu } from "react-icons/md
 import Sidebar from "./Sidebar";
 import Navbar from "./Navbar";
 import MaintenanceScreen from "./MaintenanceScreen";
+import { subscribeToAuthChanges } from "../lib/authBrowserSync";
 import {
   cacheApiResponse,
   clearOfflineUserAndCache,
@@ -101,19 +102,24 @@ export default function ClientLayout({ children }) {
         }
 
         if (url.pathname === "/api/auth/me" && response.ok) {
-          try {
-            const payload = await response.clone().json();
-            if (payload?.data?.user) await saveOfflineUser(payload.data.user);
-          } catch {
-            // A malformed auth response must not break the original request.
-          }
+          // Persist the non-secret user profile in the background so IndexedDB
+          // work never delays the caller from receiving the network response.
+          void response.clone().json()
+            .then((payload) => payload?.data?.user ? saveOfflineUser(payload.data.user) : undefined)
+            .catch(() => {
+              // A malformed auth response must not break the original request.
+            });
         } else if (method === "GET" && response.ok && !url.pathname.startsWith("/api/auth/")) {
-          try {
-            const offlineUser = await getOfflineUser();
-            if (offlineUser?.userId) await cacheApiResponse(url.href, response, offlineUser.userId);
-          } catch {
-            // Caching is best-effort; online requests still work without IndexedDB.
-          }
+          // Cache successful reads asynchronously; the online response should be
+          // returned immediately even on slower phones or storage implementations.
+          void (async () => {
+            try {
+              const offlineUser = await getOfflineUser();
+              if (offlineUser?.userId) await cacheApiResponse(url.href, response, offlineUser.userId);
+            } catch {
+              // Caching is best-effort; online requests still work without IndexedDB.
+            }
+          })();
         }
 
         if (url.pathname === "/api/auth/logout" && response.ok) {
@@ -209,11 +215,9 @@ export default function ClientLayout({ children }) {
     window.addEventListener("inventory:offline-sync-complete", handleSyncComplete);
     window.addEventListener("inventory:offline-sync-error", handleQueueError);
 
+    // Initial sync is handled by updateOnlineState to avoid two competing queue checks.
     window.setTimeout(updateOnlineState, 0);
     refreshQueueCount();
-    if (navigator.onLine) {
-      syncOfflineQueue(originalFetch).catch(() => {}).finally(refreshQueueCount);
-    }
 
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("/sw.js").catch(() => {
@@ -233,10 +237,97 @@ export default function ClientLayout({ children }) {
     };
   }, []);
 
+  // Keep every same-origin tab/window aligned with the shared HttpOnly session cookie.
+  useEffect(() => {
+    return subscribeToAuthChanges(({ type }) => {
+      if (type === "logout") {
+        void (async () => {
+          try {
+            await clearOfflineUserAndCache();
+          } catch {
+            // Logout must still navigate away if browser storage is unavailable.
+          }
+
+          const currentPath = window.location.pathname;
+          const isAuthPath = ["/login", "/signup", "/forgot-password", "/reset-password"].includes(currentPath)
+            || currentPath.startsWith("/forgot-password/")
+            || currentPath.startsWith("/reset-password/");
+          if (currentPath !== "/" && !isAuthPath) {
+            window.location.replace("/login");
+          }
+        })();
+        return;
+      }
+
+      if (type === "login") {
+        const currentPath = window.location.pathname;
+        const isAuthPath = ["/login", "/signup", "/forgot-password", "/reset-password"].includes(currentPath)
+          || currentPath.startsWith("/forgot-password/")
+          || currentPath.startsWith("/reset-password/");
+        if (currentPath === "/" || isAuthPath) {
+          window.location.replace("/dashboard");
+        } else {
+          // A login may have switched the account attached to the shared cookie.
+          window.location.reload();
+        }
+      }
+    });
+  }, []);
+
   const isPublicRoute = pathname === "/";
   const isAuthRoute = ["/login", "/signup", "/forgot-password", "/reset-password"].includes(pathname)
     || pathname.startsWith("/forgot-password/")
     || pathname.startsWith("/reset-password/");
+
+  // When someone opens the main URL (or signup page), verify any saved cookie
+  // with the backend first. A valid session goes straight to the workspace;
+  // a missing/invalid cookie leaves the public page available as normal.
+  useEffect(() => {
+    if (pathname !== "/" && pathname !== "/signup") return undefined;
+
+    let active = true;
+
+    async function resumeExistingSession() {
+      try {
+        const response = await fetch("/api/auth/me", {
+          credentials: "include",
+          cache: "no-store",
+        });
+
+        // Never redirect based only on locally cached profile data. The session
+        // must be confirmed by the backend for this online request.
+        if (
+          !active ||
+          !response.ok ||
+          response.headers.get("x-inventory-offline-session") === "true"
+        ) {
+          return;
+        }
+
+        const payload = await response.json();
+        if (!active || !payload?.data?.user) return;
+
+        const requestedNext = new URLSearchParams(window.location.search).get("next");
+        const destination =
+          requestedNext &&
+          requestedNext.startsWith("/") &&
+          !requestedNext.startsWith("//") &&
+          !/^\/(?:login|signup|forgot-password|reset-password)(?:[/?#]|$)/.test(requestedNext)
+            ? requestedNext
+            : "/dashboard";
+
+        router.replace(destination);
+        router.refresh();
+      } catch {
+        // Fail open for public pages if the session endpoint is unreachable.
+      }
+    }
+
+    void resumeExistingSession();
+    return () => {
+      active = false;
+    };
+  }, [pathname, router]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- Close the mobile drawer when browser navigation changes routes.
@@ -376,7 +467,7 @@ export default function ClientLayout({ children }) {
           </div>
         ) : null}
 
-        <main className="min-w-0 flex-1 pb-20 sm:pb-0">
+        <main className="app-main-content min-w-0 flex-1 pb-20 sm:pb-0">
           {user?.isDemo ? (
             <div role="status" className="flex flex-wrap items-center justify-center gap-2 border-b border-amber-200 bg-amber-50 px-4 py-3 text-center text-sm text-amber-900">
               <strong>Demo mode — read-only.</strong>
