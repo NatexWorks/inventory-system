@@ -128,8 +128,12 @@ export default function Navbar({ handleClick, className = "", user }) {
     document.addEventListener("visibilitychange", refreshWhenVisible);
 
     if (notificationOpen) {
-      setNotificationsLoading(true);
-      void loadNotifications();
+      // Defer the loading-state transition so it doesn't force a synchronous
+      // render from inside the effect itself.
+      timeoutId = window.setTimeout(() => {
+        setNotificationsLoading(true);
+        void loadNotifications();
+      }, 0);
     } else if ("requestIdleCallback" in window) {
       // Keep the initial badge fetch off the critical first paint.
       idleId = window.requestIdleCallback(() => {
