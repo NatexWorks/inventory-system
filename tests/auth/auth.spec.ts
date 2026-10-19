@@ -27,6 +27,8 @@ test.describe('Authentication', () => {
     await auth.login(users.owner.email, users.owner.password);
     await expect(page).toHaveURL(/\/dashboard$/);
 
+    await auth.expectHeading(/Welcome back/i);
+
     // Simulate opening the public production URL again in the same browser.
     const verifiedSession = page.waitForResponse((response) =>
       response.url().endsWith('/api/auth/me') &&
