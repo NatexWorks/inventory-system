@@ -250,8 +250,8 @@ export default function Navbar({ handleClick, className = "", user }) {
     <>
       <nav className={`relative flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b border-slate-200 bg-white/95 px-3 py-3 shadow-[0_1px_0_rgba(15,23,42,0.03)] backdrop-blur sm:flex-nowrap sm:gap-3 sm:px-6 sm:py-4 lg:px-8 ${className}`}>
         <div className="min-w-0 max-w-full">
-          <span className="flex items-center gap-3">
-            <button type="button" onClick={handleClick} className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 transition hover:border-indigo-200 hover:text-indigo-600 lg:hidden" aria-label="Toggle sidebar"><MdMenu size={24} /></button>
+          <span className="flex items-center gap-3 pl-14 lg:pl-0">
+            <button type="button" onClick={handleClick} className="fixed left-3 top-3 z-50 inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 shadow-md transition hover:border-indigo-200 hover:text-indigo-600 lg:hidden" aria-label="Toggle sidebar"><MdMenu size={24} /></button>
             <div className="min-w-0 max-w-full">
               <div className="wrap-safe text-sm font-semibold leading-tight text-slate-500">Welcome back</div>
               <div className="wrap-safe text-lg font-bold leading-tight text-slate-900 sm:truncate sm:whitespace-nowrap">{displayName}</div>
