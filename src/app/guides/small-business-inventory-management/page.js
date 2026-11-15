@@ -146,7 +146,7 @@ export default function SmallBusinessInventoryGuide() {
           </section>
 
           <p className="mt-10 border-t border-slate-200 pt-6 text-sm leading-7 text-slate-500">
-            Further reading: <a href="https://help.shopify.com/en/manual/inventory-and-locations/fundamentals/understanding-inventory-management" target="_blank" rel="noopener noreferrer" className="font-semibold text-indigo-700 underline underline-offset-4">Shopify's overview of inventory management methods</a> and <a href="https://quickbooks.intuit.com/r/operations-technology/inventory-management-tips/" target="_blank" rel="noopener noreferrer" className="font-semibold text-indigo-700 underline underline-offset-4">QuickBooks' guidance on reorder points and cycle counts</a>.
+            Further reading: <a href="https://help.shopify.com/en/manual/inventory-and-locations/fundamentals/understanding-inventory-management" target="_blank" rel="noopener noreferrer" className="font-semibold text-indigo-700 underline underline-offset-4">Shopify&apos;s overview of inventory management methods</a> and <a href="https://quickbooks.intuit.com/r/operations-technology/inventory-management-tips/" target="_blank" rel="noopener noreferrer" className="font-semibold text-indigo-700 underline underline-offset-4">QuickBooks&apos; guidance on reorder points and cycle counts</a>.
           </p>
         </div>
       </article>
