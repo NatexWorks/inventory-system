@@ -3,7 +3,7 @@ import Link from "next/link";
 const SITE_URL = "https://inventory-system-mu-puce.vercel.app";
 
 export const metadata = {
-  title: "Inventory Management Features | Stock and Barcode Tracking",
+  title: "Inventory Management Features",
   description: "Explore product catalogue, stock visibility, barcode-assisted order workflows, supplier records and reporting features in Inventory System.",
   alternates: { canonical: "/features" },
   openGraph: {
