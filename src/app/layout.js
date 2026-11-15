@@ -23,7 +23,14 @@ export const metadata = {
   },
   description: "Track products, stock levels, suppliers, orders and barcode scans in one browser-based inventory management system. Review low-stock items and sales activity.",
   applicationName: "Inventory System",
-  icons: { icon: "/icon.svg", shortcut: "/icon.svg" },
+  icons: {
+    icon: [
+      { url: "/favicon-192.png", type: "image/png", sizes: "192x192" },
+      { url: "/icon.svg", type: "image/svg+xml" },
+    ],
+    shortcut: "/favicon-192.png",
+    apple: "/favicon-192.png",
+  },
   manifest: "/manifest.webmanifest",
   appleWebApp: { capable: true, statusBarStyle: "default", title: "Inventory System" },
   keywords: [
@@ -65,7 +72,6 @@ export default function RootLayout({ children }) {
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
       <body className="min-h-screen">
         <ClientLayout>{children}</ClientLayout>
-       
       </body>
     </html>
   );
