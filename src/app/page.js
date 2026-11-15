@@ -191,6 +191,9 @@ export default function Home() {
             <div className="mt-5 flex flex-wrap justify-center gap-x-6 gap-y-3 text-sm">
               <Link href="/barcode-inventory-management" className="font-semibold text-slate-600 underline underline-offset-4 hover:text-indigo-700">Barcode inventory management</Link>
               <Link href="/guides/small-business-inventory-management" className="font-semibold text-slate-600 underline underline-offset-4 hover:text-indigo-700">Small business inventory guide</Link>
+              <Link href="/guides/stock-register-format" className="font-semibold text-slate-600 underline underline-offset-4 hover:text-indigo-700">Free stock register template</Link>
+              <Link href="/guides/reorder-level-calculation" className="font-semibold text-slate-600 underline underline-offset-4 hover:text-indigo-700">Reorder level formula</Link>
+              <Link href="/guides/abc-analysis-inventory-management" className="font-semibold text-slate-600 underline underline-offset-4 hover:text-indigo-700">ABC inventory analysis</Link>
             </div>
           </div>
         </div>
