@@ -45,7 +45,7 @@ function queuedResponse(item) {
 
 export default function ClientLayout({ children }) {
   const pathname = usePathname();
-  const isPublicRoute = pathname === "/" || pathname === "/features";
+  const isPublicRoute = pathname === "/" || pathname === "/features" || pathname === "/barcode-inventory-management" || pathname.startsWith("/guides/");
   const isAuthRoute = ["/login", "/signup", "/forgot-password", "/reset-password"].includes(pathname)
     || pathname.startsWith("/forgot-password/")
     || pathname.startsWith("/reset-password/");
