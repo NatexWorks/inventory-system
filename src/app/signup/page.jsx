@@ -3,6 +3,7 @@ import AuthForm from "@/app/components/AuthForm";
 export const metadata = {
   title: "Create an account",
   description: "Create an Inventory System workspace to manage products, stock and orders.",
+  alternates: { canonical: "/signup" },
   robots: { index: false, follow: false },
 };
 
