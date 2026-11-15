@@ -1,3 +1,14 @@
+## Live application
+
+Try **Inventory System**, a browser-based inventory and stock-management app:
+
+- [Open the live Inventory System](https://inventory-system-mu-puce.vercel.app/)
+- [Explore product and inventory features](https://inventory-system-mu-puce.vercel.app/features)
+- [Read about barcode-assisted inventory lookup](https://inventory-system-mu-puce.vercel.app/barcode-inventory-management)
+- [Download the sample stock register CSV](https://inventory-system-mu-puce.vercel.app/templates/stock-register-template.csv)
+
+The public guides cover product records, stock movements, reorder-point planning, stock-register practices and ABC inventory control. Product capabilities are described on the live site; check the feature pages before assuming a workflow is included.
+
 ## Public demo account
 
 The login and signup pages display a public, read-only demo account:
