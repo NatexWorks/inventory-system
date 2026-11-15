@@ -52,7 +52,7 @@ export default function AbcAnalysisGuide() {
           </div>
           <section className="mt-12">
             <h2 className="text-2xl font-bold">1. What A, B and C mean</h2>
-            <p className="mt-4 leading-8 text-slate-700">After calculating annual consumption value, sort products from highest to lowest and calculate each item's cumulative share of the total. A common approach is to place the highest-value items in category A, the middle group in B and the lowest-value group in C.</p>
+            <p className="mt-4 leading-8 text-slate-700">After calculating annual consumption value, sort products from highest to lowest and calculate each item&apos;s cumulative share of the total. A common approach is to place the highest-value items in category A, the middle group in B and the lowest-value group in C.</p>
             <div className="mt-5 grid gap-4 md:grid-cols-3">
               <div className="rounded-2xl border border-rose-200 bg-rose-50/50 p-5"><p className="text-sm font-bold text-rose-800">A items</p><p className="mt-2 text-sm leading-7 text-slate-700">Often a smaller number of products representing a large share of annual consumption value. Review closely and investigate record differences quickly.</p></div>
               <div className="rounded-2xl border border-amber-200 bg-amber-50/50 p-5"><p className="text-sm font-bold text-amber-800">B items</p><p className="mt-2 text-sm leading-7 text-slate-700">Middle-value products. Use a regular review rhythm that balances attention with the effort required.</p></div>
