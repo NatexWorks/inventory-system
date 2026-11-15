@@ -18,10 +18,10 @@ const SITE_URL = "https://inventory-system-mu-puce.vercel.app";
 export const metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "Inventory System | Inventory & Stock Management Software",
+    default: "Inventory Management Software | Inventory System",
     template: "%s | Inventory System",
   },
-  description: "Manage products, track stock levels, monitor orders and review inventory activity from one simple inventory management dashboard.",
+  description: "Track products, stock levels, suppliers, orders and barcode scans in one browser-based inventory management system. Review low-stock items and sales activity.",
   applicationName: "Inventory System",
   icons: { icon: "/icon.svg", shortcut: "/icon.svg" },
   manifest: "/manifest.webmanifest",
@@ -29,23 +29,34 @@ export const metadata = {
   keywords: [
     "inventory management software",
     "stock management software",
-    "inventory tracking",
-    "product stock management",
-    "inventory management for small businesses",
-    "Inventory System",
+    "inventory tracking software",
+    "barcode inventory management",
+    "small business inventory software",
+    "stock control software",
   ],
   alternates: { canonical: "/" },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
+  },
   openGraph: {
     type: "website",
     url: SITE_URL,
     siteName: "Inventory System",
-    title: "Inventory System | Inventory & Stock Management Software",
-    description: "Track products, monitor stock levels and review orders from one straightforward inventory dashboard.",
+    title: "Inventory Management Software | Inventory System",
+    description: "Track products, stock levels, suppliers, orders and barcode scans in one browser-based inventory management system.",
   },
   twitter: {
     card: "summary",
-    title: "Inventory System | Inventory & Stock Management Software",
-    description: "Track products, monitor stock levels and review orders from one straightforward inventory dashboard.",
+    title: "Inventory Management Software | Inventory System",
+    description: "Track products, stock levels, suppliers, orders and barcode scans in one browser-based inventory management system.",
   },
 };
 
