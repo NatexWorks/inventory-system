@@ -3,6 +3,7 @@ import ResetPasswordForm from "@/app/components/ResetPasswordForm";
 export const metadata = {
   title: "Choose a new password",
   description: "Set a new password for your Inventory System account.",
+  alternates: { canonical: "/reset-password" },
   robots: { index: false, follow: false },
 };
 
