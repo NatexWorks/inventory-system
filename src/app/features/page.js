@@ -56,6 +56,7 @@ export default function FeaturesPage() {
           <Link href="/" className="text-lg font-bold tracking-tight">Inventory<span className="text-indigo-600">System</span></Link>
           <div className="flex items-center gap-3">
             <Link href="/" className="rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">Home</Link>
+            <Link href="/barcode-inventory-management" className="rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">Barcode workflow</Link>
             <Link href="/login?next=%2Fdashboard" className="rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">Log in</Link>
             <Link href="/signup?next=%2Fdashboard" className="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700">Get started</Link>
           </div>
@@ -126,6 +127,13 @@ export default function FeaturesPage() {
               <Link href="/login?next=%2Fdashboard" className="inline-flex items-center justify-center rounded-xl border border-slate-200 px-5 py-3 font-semibold text-slate-700 hover:bg-slate-50">Open login</Link>
             </div>
           </div>
+        </div>
+      </section>
+
+      <section className="bg-slate-50 px-5 py-10 sm:px-8">
+        <div className="mx-auto flex max-w-4xl flex-col gap-3 text-center sm:flex-row sm:justify-center sm:gap-8">
+          <Link href="/barcode-inventory-management" className="font-semibold text-indigo-700 underline underline-offset-4 hover:text-indigo-600">Barcode inventory management workflow</Link>
+          <Link href="/guides/small-business-inventory-management" className="font-semibold text-indigo-700 underline underline-offset-4 hover:text-indigo-600">Small business inventory management guide</Link>
         </div>
       </section>
 
