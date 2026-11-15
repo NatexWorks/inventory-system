@@ -188,6 +188,10 @@ export default function Home() {
             <Link href="/features" className="inline-flex items-center gap-2 font-semibold text-indigo-700 underline underline-offset-4 hover:text-indigo-600">
               Explore inventory management features <FaArrowRight />
             </Link>
+            <div className="mt-5 flex flex-wrap justify-center gap-x-6 gap-y-3 text-sm">
+              <Link href="/barcode-inventory-management" className="font-semibold text-slate-600 underline underline-offset-4 hover:text-indigo-700">Barcode inventory management</Link>
+              <Link href="/guides/small-business-inventory-management" className="font-semibold text-slate-600 underline underline-offset-4 hover:text-indigo-700">Small business inventory guide</Link>
+            </div>
           </div>
         </div>
       </section>
