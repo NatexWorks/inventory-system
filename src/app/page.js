@@ -25,9 +25,27 @@ const features = [
   },
 ];
 
+const structuredData = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: "Inventory System",
+  applicationCategory: "BusinessApplication",
+  operatingSystem: "Web browser",
+  url: "https://inventory-system-mu-puce.vercel.app/",
+  description: "Inventory management software for tracking products, stock levels, barcode scans, suppliers and orders.",
+  featureList: [
+    "Product and stock tracking",
+    "Low-stock visibility",
+    "Barcode scanning",
+    "Supplier and order management",
+    "Sales and inventory reports",
+  ],
+};
+
 export default function Home() {
   return (
     <main className="home-page min-h-screen overflow-hidden bg-white text-slate-900">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} />
       <header className="landing-header relative z-10 border-b border-slate-200/80 bg-white/90">
         <nav className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4 sm:px-8" aria-label="Main navigation">
           <Link href="/" className="group flex items-center gap-3" aria-label="Inventory System home">
@@ -129,6 +147,25 @@ export default function Home() {
                 </article>
               </ScrollReveal>
             ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="border-t border-slate-100 bg-white">
+        <div className="mx-auto max-w-7xl px-5 py-16 sm:px-8 sm:py-20">
+          <div className="mx-auto max-w-4xl">
+            <h2 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">Inventory and stock management in one workspace</h2>
+            <p className="mt-5 leading-7 text-slate-600">
+              Inventory System brings everyday stock operations into one place. Organise product details and categories, keep an eye on available quantities, and identify items that may need replenishment before they disrupt day-to-day work.
+            </p>
+            <h3 className="mt-8 text-xl font-semibold text-slate-900">Track products, orders and suppliers</h3>
+            <p className="mt-3 leading-7 text-slate-600">
+              Use the product catalogue to maintain stock records, review order activity, and keep supplier information together. Barcode scanning helps make product lookup and point-of-sale workflows more convenient, while inventory and sales reports help you review business activity.
+            </p>
+            <h3 className="mt-8 text-xl font-semibold text-slate-900">A practical inventory management system for growing teams</h3>
+            <p className="mt-3 leading-7 text-slate-600">
+              Whether you call it inventory management or stock management, the goal is the same: know what you have, understand what is moving, and make informed replenishment decisions. Sign in to your workspace to manage your products and daily inventory operations.
+            </p>
           </div>
         </div>
       </section>
