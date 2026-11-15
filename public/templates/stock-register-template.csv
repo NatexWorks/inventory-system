@@ -1,0 +1,4 @@
+date,reference,sku,product,opening_qty,stock_in,stock_out,accepted_returns,adjustments,closing_qty,physical_count,difference,notes
+2026-11-15,GRN-001,TSH-BLK-M,Black T-shirt Medium,24,12,0,0,0,36,,,Example goods receipt
+2026-11-15,SALE-1042,TSH-BLK-M,Black T-shirt Medium,36,0,5,0,0,31,,,Example sale
+2026-11-15,RET-018,TSH-BLK-M,Black T-shirt Medium,31,0,0,1,0,32,,,Example inspected good return

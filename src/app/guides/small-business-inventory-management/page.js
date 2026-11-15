@@ -145,6 +145,15 @@ export default function SmallBusinessInventoryGuide() {
             </div>
           </section>
 
+          <nav aria-label="Related inventory guides" className="mt-12 border-t border-slate-200 pt-6">
+            <h2 className="text-lg font-bold">Continue learning about inventory control</h2>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <Link href="/guides/stock-register-format" className="rounded-xl border border-slate-200 p-4 font-semibold text-indigo-700 hover:bg-slate-50">Free stock register format and CSV template</Link>
+              <Link href="/guides/reorder-level-calculation" className="rounded-xl border border-slate-200 p-4 font-semibold text-indigo-700 hover:bg-slate-50">Reorder point and safety stock calculation</Link>
+              <Link href="/guides/abc-analysis-inventory-management" className="rounded-xl border border-slate-200 p-4 font-semibold text-indigo-700 hover:bg-slate-50">ABC analysis for A, B and C items</Link>
+              <Link href="/barcode-inventory-management" className="rounded-xl border border-slate-200 p-4 font-semibold text-indigo-700 hover:bg-slate-50">Barcode-assisted product lookup</Link>
+            </div>
+          </nav>
           <p className="mt-10 border-t border-slate-200 pt-6 text-sm leading-7 text-slate-500">
             Further reading: <a href="https://help.shopify.com/en/manual/inventory-and-locations/fundamentals/understanding-inventory-management" target="_blank" rel="noopener noreferrer" className="font-semibold text-indigo-700 underline underline-offset-4">Shopify&apos;s overview of inventory management methods</a> and <a href="https://quickbooks.intuit.com/r/operations-technology/inventory-management-tips/" target="_blank" rel="noopener noreferrer" className="font-semibold text-indigo-700 underline underline-offset-4">QuickBooks&apos; guidance on reorder points and cycle counts</a>.
           </p>
