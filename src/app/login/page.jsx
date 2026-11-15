@@ -3,6 +3,7 @@ import AuthForm from "@/app/components/AuthForm";
 export const metadata = {
   title: "Log in",
   description: "Sign in to your private Inventory System workspace.",
+  alternates: { canonical: "/login" },
   robots: { index: false, follow: false },
 };
 

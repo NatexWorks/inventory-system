@@ -3,6 +3,7 @@ import ForgotPasswordForm from "@/app/components/ForgotPasswordForm";
 export const metadata = {
   title: "Reset your password",
   description: "Recover access to your Inventory System account.",
+  alternates: { canonical: "/forgot-password" },
   robots: { index: false, follow: false },
 };
 
