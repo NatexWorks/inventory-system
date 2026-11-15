@@ -45,6 +45,10 @@ function queuedResponse(item) {
 
 export default function ClientLayout({ children }) {
   const pathname = usePathname();
+  const isPublicRoute = pathname === "/" || pathname === "/features";
+  const isAuthRoute = ["/login", "/signup", "/forgot-password", "/reset-password"].includes(pathname)
+    || pathname.startsWith("/forgot-password/")
+    || pathname.startsWith("/reset-password/");
   const [open, setOpen] = useState(true);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [user, setUser] = useState(null);
@@ -60,6 +64,8 @@ export default function ClientLayout({ children }) {
   // Keep a secure, browser-managed HttpOnly auth cookie. IndexedDB stores only
   // non-secret user context, cached API responses and queued workspace changes.
   useEffect(() => {
+    if (isPublicRoute || isAuthRoute) return undefined;
+
     let disposed = false;
     const originalFetch = window.fetch.bind(window);
 
@@ -235,10 +241,11 @@ export default function ClientLayout({ children }) {
       window.removeEventListener("inventory:offline-sync-complete", handleSyncComplete);
       window.removeEventListener("inventory:offline-sync-error", handleQueueError);
     };
-  }, []);
+  }, [isPublicRoute, isAuthRoute]);
 
   // Keep every same-origin tab/window aligned with the shared HttpOnly session cookie.
   useEffect(() => {
+    if (isPublicRoute) return undefined;
     return subscribeToAuthChanges(({ type }) => {
       if (type === "logout") {
         void (async () => {
@@ -272,12 +279,7 @@ export default function ClientLayout({ children }) {
         }
       }
     });
-  }, []);
-
-  const isPublicRoute = pathname === "/";
-  const isAuthRoute = ["/login", "/signup", "/forgot-password", "/reset-password"].includes(pathname)
-    || pathname.startsWith("/forgot-password/")
-    || pathname.startsWith("/reset-password/");
+  }, [isPublicRoute]);
 
   // When someone opens the main URL (or signup page), verify any saved cookie
   // with the backend first. A valid session goes straight to the workspace;

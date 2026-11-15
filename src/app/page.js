@@ -28,15 +28,39 @@ const features = [
 export default function Home() {
   return (
     <main className="home-page min-h-screen overflow-hidden bg-white text-slate-900">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "SoftwareApplication",
+            name: "Inventory System",
+            applicationCategory: "BusinessApplication",
+            applicationSubCategory: "Inventory management software",
+            operatingSystem: "Web",
+            url: "https://inventory-system-mu-puce.vercel.app/",
+            description: "A browser-based inventory and stock management application for product records, stock visibility, barcode-assisted order workflows, suppliers and reports.",
+            featureList: [
+              "Product catalogue and stock quantity tracking",
+              "Low-stock visibility",
+              "Barcode scanning and product lookup",
+              "Order and point-of-sale draft workflows",
+              "Supplier directory",
+              "Inventory and sales reports"
+            ]
+          }).replace(/</g, "\\u003c"),
+        }}
+      />
       <header className="landing-header relative z-10 border-b border-slate-200/80 bg-white/90">
         <nav className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4 sm:px-8" aria-label="Main navigation">
-          <Link href="/" className="group flex items-center gap-3" aria-label="Inventory System home">
+          <Link href="/" className="group flex items-center gap-3" aria-label="Inventory System">
             <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-600 text-white shadow-lg shadow-indigo-200 transition-transform duration-200 group-hover:scale-105">
               <FaBoxesStacked className="text-lg" />
             </span>
             <span className="text-lg font-bold tracking-tight">Inventory<span className="text-indigo-600">System</span></span>
           </Link>
           <div className="flex items-center gap-3">
+            <Link href="/features" className="rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 transition-colors duration-200 hover:bg-slate-100">Features</Link>
             <Link href="/login?next=%2Fdashboard" className="rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 transition-colors duration-200 hover:bg-slate-100 active:scale-[0.98] sm:px-4">Log in</Link>
             <Link href="/signup?next=%2Fdashboard" className="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-indigo-200 transition-all duration-200 hover:-translate-y-0.5 hover:bg-indigo-700 hover:shadow-lg active:translate-y-0 active:scale-[0.98] sm:focus-visible:outline-none sm:focus-visible:ring-2 sm:focus-visible:ring-indigo-400">Get started <span aria-hidden="true">→</span></Link>
           </div>
@@ -129,6 +153,68 @@ export default function Home() {
                 </article>
               </ScrollReveal>
             ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="border-y border-slate-100 bg-white">
+        <div className="mx-auto max-w-7xl px-5 py-16 sm:px-8 sm:py-20">
+          <div className="mx-auto max-w-3xl text-center">
+            <p className="text-sm font-bold uppercase tracking-[0.18em] text-indigo-600">A clearer stock workflow</p>
+            <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">From product records to order review, in one place.</h2>
+            <p className="mt-4 leading-7 text-slate-600">
+              Inventory System brings the everyday steps of stock control into one browser-based workspace. Keep product information organised, see which items need attention, and review order activity without switching between scattered records.
+            </p>
+          </div>
+          <div className="mt-10 grid gap-5 md:grid-cols-2">
+            <article className="rounded-2xl border border-slate-200 bg-slate-50 p-6">
+              <h3 className="text-lg font-bold text-slate-900">1. Build a product catalogue</h3>
+              <p className="mt-2 text-sm leading-6 text-slate-600">Create product records with names, categories, prices, cost prices, stock quantities, SKUs, descriptions and optional barcodes. Keep the key details used by your day-to-day stock workflow together.</p>
+            </article>
+            <article className="rounded-2xl border border-slate-200 bg-slate-50 p-6">
+              <h3 className="text-lg font-bold text-slate-900">2. Review stock levels</h3>
+              <p className="mt-2 text-sm leading-6 text-slate-600">Check product quantities and spot low-stock items that need a closer look. A clear stock overview helps you decide what to review before an item runs out.</p>
+            </article>
+            <article className="rounded-2xl border border-slate-200 bg-slate-50 p-6">
+              <h3 className="text-lg font-bold text-slate-900">3. Find products with barcode scans</h3>
+              <p className="mt-2 text-sm leading-6 text-slate-600">Use a supported device camera or enter a barcode manually in the point-of-sale workflow. The matching product can be added to a draft bill for review.</p>
+            </article>
+            <article className="rounded-2xl border border-slate-200 bg-slate-50 p-6">
+              <h3 className="text-lg font-bold text-slate-900">4. Review orders and suppliers</h3>
+              <p className="mt-2 text-sm leading-6 text-slate-600">Keep supplier contact records and order activity accessible alongside your product catalogue. In the POS approval workflow, stock is deducted after an order is approved.</p>
+            </article>
+          </div>
+          <div className="mt-8 text-center">
+            <Link href="/features" className="inline-flex items-center gap-2 font-semibold text-indigo-700 underline underline-offset-4 hover:text-indigo-600">
+              Explore inventory management features <FaArrowRight />
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-slate-50/80 px-5 py-16 sm:px-8 sm:py-20">
+        <div className="mx-auto max-w-4xl">
+          <div className="text-center">
+            <p className="text-sm font-bold uppercase tracking-[0.18em] text-indigo-600">Common questions</p>
+            <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">Inventory management software FAQs</h2>
+          </div>
+          <div className="mt-8 divide-y divide-slate-200 rounded-2xl border border-slate-200 bg-white px-5">
+            <details className="py-5">
+              <summary className="cursor-pointer font-semibold text-slate-900">What can I manage with Inventory System?</summary>
+              <p className="mt-3 text-sm leading-6 text-slate-600">You can organise product records, review stock quantities, identify low-stock items, maintain supplier details, prepare orders with barcode-assisted product lookup and review inventory activity.</p>
+            </details>
+            <details className="py-5">
+              <summary className="cursor-pointer font-semibold text-slate-900">Does the system support barcode scanning?</summary>
+              <p className="mt-3 text-sm leading-6 text-slate-600">Yes. The point-of-sale workflow supports camera-based barcode scanning in compatible browsers and manual barcode entry. Scanned products can be added to a draft bill.</p>
+            </details>
+            <details className="py-5">
+              <summary className="cursor-pointer font-semibold text-slate-900">When is stock deducted from an order?</summary>
+              <p className="mt-3 text-sm leading-6 text-slate-600">The current POS workflow prepares a draft bill for approval. Stock is deducted only after the order is approved.</p>
+            </details>
+            <details className="py-5">
+              <summary className="cursor-pointer font-semibold text-slate-900">Can I manage supplier information?</summary>
+              <p className="mt-3 text-sm leading-6 text-slate-600">The supplier directory stores supplier names, contact details, email addresses, addresses, product counts, ratings and status fields.</p>
+            </details>
           </div>
         </div>
       </section>
