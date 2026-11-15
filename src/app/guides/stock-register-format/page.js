@@ -95,14 +95,14 @@ export default function StockRegisterGuide() {
             <p className="mt-4 leading-8 text-slate-700">Do not overwrite the expected balance simply to make the two numbers match. Recount the item, check the unit of measure and review movements since the last verified count. Common causes include an unrecorded receipt, an order that was drafted but not approved, a return that was not inspected, damaged goods or a duplicate entry.</p>
             <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50/50 p-6">
               <h3 className="font-bold text-slate-950">Example discrepancy log</h3>
-              <p className="mt-2 text-sm leading-7 text-slate-700">Expected: 32 pieces · Physical count: 31 · Difference: −1 · Action: recount, check the last day's bills and goods-received notes, then approve a documented adjustment only after the cause is understood.</p>
+              <p className="mt-2 text-sm leading-7 text-slate-700">Expected: 32 pieces · Physical count: 31 · Difference: −1 · Action: recount, check the last day&apos;s bills and goods-received notes, then approve a documented adjustment only after the cause is understood.</p>
             </div>
           </section>
 
           <section className="mt-12">
             <h2 className="text-2xl font-bold">5. When should a spreadsheet become inventory software?</h2>
             <p className="mt-4 leading-8 text-slate-700">A spreadsheet can work for a small catalogue and a single person maintaining it. As more staff, orders, product variants or stock movements are added, consistent references and access controls become harder to maintain manually. Inventory software can make product lookup, quantity visibility and order workflows easier to coordinate, but check that the exact functions you need are included before migrating live records.</p>
-            <p className="mt-4 leading-8 text-slate-700">Inventory System currently provides product records, stock visibility, low-stock review, supplier details, reporting screens and barcode-assisted lookup in its POS workflow. The app's current public features do not claim a built-in printable stock-register export or automatic ABC analysis.</p>
+            <p className="mt-4 leading-8 text-slate-700">Inventory System currently provides product records, stock visibility, low-stock review, supplier details, reporting screens and barcode-assisted lookup in its POS workflow. The app&apos;s current public features do not claim a built-in printable stock-register export or automatic ABC analysis.</p>
             <div className="mt-6 flex flex-col gap-3 sm:flex-row">
               <Link href="/features" className="inline-flex items-center justify-center rounded-xl bg-indigo-600 px-5 py-3 font-semibold text-white hover:bg-indigo-700">Explore inventory features</Link>
               <Link href="/guides/small-business-inventory-management" className="inline-flex items-center justify-center rounded-xl border border-slate-200 px-5 py-3 font-semibold text-slate-700 hover:bg-slate-50">Read the small business guide</Link>
