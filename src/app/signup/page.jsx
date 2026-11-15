@@ -1,5 +1,12 @@
 import AuthForm from "@/app/components/AuthForm";
 
+export const metadata = {
+  title: "Create an account",
+  description: "Create an Inventory System workspace to manage products, stock and orders.",
+  robots: { index: false, follow: false },
+};
+
+
 // Keep signup visually consistent with login by using the shared reference form.
 export default async function SignupPage({ searchParams }) {
   const params = await searchParams;
