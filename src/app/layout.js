@@ -18,10 +18,10 @@ const SITE_URL = "https://inventory-system-mu-puce.vercel.app";
 export const metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "Inventory System | Inventory & Stock Management Software",
+    default: "Inventory Management Software for Small Businesses | Inventory System",
     template: "%s | Inventory System",
   },
-  description: "Manage products, track stock levels, monitor orders and review inventory activity from one simple inventory management dashboard.",
+  description: "Track products, monitor stock levels, scan barcodes, manage suppliers and review orders with a straightforward inventory management system.",
   applicationName: "Inventory System",
   icons: { icon: "/icon.svg", shortcut: "/icon.svg" },
   manifest: "/manifest.webmanifest",
@@ -39,13 +39,13 @@ export const metadata = {
     type: "website",
     url: SITE_URL,
     siteName: "Inventory System",
-    title: "Inventory System | Inventory & Stock Management Software",
-    description: "Track products, monitor stock levels and review orders from one straightforward inventory dashboard.",
+    title: "Inventory Management Software for Small Businesses | Inventory System",
+    description: "Track products, monitor stock levels, scan barcodes, manage suppliers and review orders with a straightforward inventory management system.",
   },
   twitter: {
     card: "summary",
-    title: "Inventory System | Inventory & Stock Management Software",
-    description: "Track products, monitor stock levels and review orders from one straightforward inventory dashboard.",
+    title: "Inventory Management Software | Inventory System",
+    description: "Track products, monitor stock levels, scan barcodes and manage orders from one inventory workspace.",
   },
 };
 
